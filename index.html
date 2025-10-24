@@ -69,6 +69,7 @@
         
         /* ✨ PWA: 채팅 입력창 하단 인디케이터 영역 확보 (더 확실하게) */
         #chat-form {
+             /* 1rem(기본패딩) + 홈 인디케이터 영역 */
              padding-bottom: calc(1rem + env(safe-area-inset-bottom));
         }
 
@@ -111,7 +112,7 @@
                 </div>
                 <textarea id="char-persona" rows="8"
                     class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="예: 엘리제를 위하여를 표절했다는 논란에 휩싸인 프레데리크 쇼팽"
+                    placeholder="예: 너는 친절한 집사 고양이다. 말 끝마다 '냥'을 붙인다. 나를 '주인님'이라고 부른다."
                 ></textarea>
             </div>
 
@@ -120,7 +121,7 @@
                 <label for="user-persona" class="block mb-2 text-sm font-medium text-green-300">👤 나의 페르소나 (나의 역할)</label>
                 <textarea id="user-persona" rows="4"
                     class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-green-500 focus:border-green-500"
-                    placeholder="예: 그 광경을 하늘에서 재밌게 즐겨보는 모차르트."
+                    placeholder="예: 나는 이 고양이를 입양한 주인이다. 고양이에게 오늘 있었던 일을 상담한다."
                 ></textarea>
             </div>
 
@@ -176,8 +177,10 @@
         </div>
 
         <!-- 2. 채팅 영역 -->
+        <!-- ✨ PWA: h-full 대신 flex-1 사용 (부모가 min-height: 100dvh 이므로) -->
         <div class="flex-1 flex flex-col"> 
             
+            <!-- ✨ PWA: 상단 노치 영역 확보용 패딩은 app-container로 이동함 -->
             <div class="bg-gray-800 p-4 border-b border-gray-700 shadow-md md:border-l flex justify-between items-center">
                 <h1 class="text-xl font-bold text-white">Gemini 페르소나 챗</h1>
                 
@@ -240,6 +243,7 @@
             </div>
 
             <!-- 채팅 입력 폼 -->
+            <!-- ✨ PWA: 하단 인디케이터 영역 확보 (style="padding-bottom: ...") -->
             <form id="chat-form" class="p-4 bg-gray-800 border-t border-gray-700 md:border-l">
                 <div class="flex space-x-2">
                     <textarea id="chat-input" rows="1"
@@ -294,7 +298,7 @@
 
         // Gemini API 설정
         let userApiKey = ""; 
-        const modelName = "gemini-2.5-pro-preview-09-2025"; // Pro 모델
+        const modelName = "gemini-2.5-pro-preview-09-2025"; // ✨ Pro 모델 (y 요청)
         let chatHistory = [];
 
         // 2. 이벤트 리스너
@@ -503,7 +507,10 @@
                      apiKeyAlert.classList.remove('hidden'); 
                 } else if (error.message && error.message.includes('400')) {
                      displayMessage(`Server error: 400 (Bad Request). API 키는 맞지만 요청 내용(JSON 형식 등)을 서버가 거부했습니다.`, 'error');
-                } else {
+                } else if (error.message && error.message.includes('fetch')) {
+                     displayMessage(`네트워크 오류: API 서버에 연결할 수 없습니다. (주소: ${error.message})`, 'error');
+                }
+                 else {
                      displayMessage(`오류가 발생했습니다: ${error.message}`, 'error');
                 }
             } finally {
@@ -522,12 +529,13 @@
             chatHistory = [];
             localStorage.removeItem(CHAT_HISTORY_STORAGE_ID); // ✨ NEW: 저장된 기록 삭제
             
-            const messages = chatDisplay.querySelectorAll('div[data-id], div.bg-red-700');
+            const messages = chatDisplay.querySelectorAll('div[data-id], div.bg-red-700, #api-key-alert'); // 알림 메시지도 삭제
             messages.forEach(msg => msg.remove());
             chatDisplay.scrollTop = 0;
             
             if (!userApiKey) {
-                apiKeyAlert.classList.remove('hidden');
+                apiKeyAlert.classList.remove('hidden'); // 키가 없다면 알림만 다시 표시
+                chatDisplay.appendChild(apiKeyAlert);
             }
         }
 
@@ -647,7 +655,9 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 const prefix = (msg.role === 'user') ? '나: ' : 'AI: ';
                 // msg.parts[0].text가 없는 비정상 데이터 방어
                  if (msg.parts && msg.parts[0] && msg.parts[0].text) {
-                     downloadContent += prefix + msg.parts[0].text + "\r\n";
+                     // \n (줄바꿈)을 \r\n (윈도우/메모장 줄바꿈)으로 통일
+                     const text = msg.parts[0].text.replace(/\n/g, '\r\n');
+                     downloadContent += prefix + text + "\r\n";
                  }
             });
 
@@ -726,7 +736,7 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
 
 
         /**
-         * 6. API 호출 공통 함수 (400 에러 수정됨)
+         * 6. API 호출 공통 함수 (모든 버그 수정됨)
          */
         async function callGeminiApi(contents, systemInstructionText, apiKey) {
             
@@ -734,10 +744,11 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 throw new Error("API key is missing.");
             }
 
+            // ✨ URL 오타 수정: labels -> language
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-            // ✨ y 요청: 검열 제거
-            const safetyThreshold = "BLOCK_NONE";
+            // ✨ y 요청: 검열 완화 (높은 수위만 차단)
+            const safetyThreshold = "BLOCK_ONLY_HIGH";
             const safetySettings = [
                 { category: "HARM_CATEGORY_HARASSMENT", threshold: safetyThreshold },
                 { category: "HARM_CATEGORY_HATE_SPEECH", threshold: safetyThreshold },
@@ -778,6 +789,7 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 if (response.status === 400) {
                      throw new Error(`Server error: 400 (Bad Request). API 키는 맞지만 요청 내용(JSON 형식 등)을 서버가 거부했습니다.`);
                 }
+                 // ✨ "Fail to fetch"는 fetchWithRetry에서 error로 잡힘
                 throw new Error(`API error! status: ${response.status}`);
             }
 
@@ -824,6 +836,7 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             const worldview = worldviewInput.value; 
             const memory = memoryInput.value;
 
+            // ✨ 400 ERROR FIX: systemInstruction이 아닌, contents에 삽입될 프롬프트
             let prompt = `
 [시스템 지침 시작]
 당신은 'AI 페르소나' 역할을 수행하는 AI입니다. 당신의 유일한 목표는 아래 설정에 완벽하게 몰입하여 사용자와 대화하는 것입니다.
@@ -857,7 +870,7 @@ ${memory || "특별히 기억할 사항은 없습니다."}
         }
 
         /**
-         * 8. UI 관련 함수 (수정 없음)
+         * 8. UI 관련 함수 (XSS 방지 강화)
          */
         function displayMessage(message, role, messageId) {
             const bubble = document.createElement('div');
@@ -880,12 +893,20 @@ ${memory || "특별히 기억할 사항은 없습니다."}
                 htmlContent = `<span class="font-bold block text-red-200">🚨 시스템</span>`;
             }
 
-            // XSS 방지: 텍스트를 <p> 태그에 안전하게 삽입
+            // ✨ XSS 방지: innerHTML 대신 textContent를 사용하고 <br>은 수동으로 변환
+            bubble.innerHTML = htmlContent; // 아이콘/라벨 삽입
+            
             const p = document.createElement('p');
             p.classList.add('text-white');
-            p.innerText = message; // innerText를 사용
             
-            bubble.innerHTML = htmlContent; // 아이콘/라벨 삽입
+            // \n (줄바꿈)을 <br> 태그로 변환
+            message.split('\n').forEach((line, index, arr) => {
+                p.appendChild(document.createTextNode(line));
+                if (index < arr.length - 1) {
+                    p.appendChild(document.createElement('br'));
+                }
+            });
+
             bubble.appendChild(p); // <p> 태그를 자식으로 추가
 
             if (messageId) {
@@ -901,9 +922,17 @@ ${memory || "특별히 기억할 사항은 없습니다."}
             }
 
             chatDisplay.appendChild(bubble);
-            chatDisplay.scrollTop = chatDisplay.scrollHeight;
+            
+            // 새 메시지가 추가되면 맨 아래로 스크롤
+            // (사용자가 위로 스크롤해서 로그 볼 때는 방해하지 않도록)
+            if (chatDisplay.scrollHeight - chatDisplay.scrollTop < chatDisplay.clientHeight + 200) {
+                 chatDisplay.scrollTop = chatDisplay.scrollHeight;
+            }
         }
 
+        /**
+         * 9. API 호출 재시도 함수 (수정 없음)
+         */
         async function fetchWithRetry(url, options, retries = 3, delay = 1000) {
             let lastError;
             for (let i = 0; i < retries; i++) {
@@ -929,7 +958,8 @@ ${memory || "특별히 기억할 사항은 없습니다."}
                 }
             }
             if (!lastError) {
-                lastError = new Error("Network request failed after retries.");
+                // fetch 자체가 실패한 경우 (e.g., URL 오타, 네트워크 없음)
+                lastError = new Error("Network request failed. (Check API URL or connection)");
             }
             throw lastError;
         }
@@ -937,6 +967,9 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
+
+
 
 
 

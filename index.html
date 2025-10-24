@@ -278,7 +278,7 @@
         // Gemini API 설정
         // ✨ FIX: apiKey를 전역 변수가 아닌, localStorage에서 불러오는 '상태'로 관리
         let userApiKey = ""; // (앱 로드 시 loadApiKey()가 채워줌)
-        const modelName = "gemini-2.5-flash-preview-09-2025"; // ✨ 400 오류 최종 확인 위해, 1.0 Pro (호환성 제일 높은) 모델로 변경
+        const modelName = "gemini-2.5-flash-preview-09-2025"; // ✨ 400 오류 최종 해결 위해 'Flash' 모델로 복귀 (AIza... 키는 이것만 지원함)
         // (apiUrl은 callGeminiApi 함수 내에서 동적으로 생성)
 
         // 대화 내역
@@ -611,16 +611,34 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: safetyThreshold },
             ];
 
+            // ✨ 400 ERROR FIX: `systemInstruction`을 `contents` 배열에 "끼워넣기"
+            let apiContents = [...contents]; // 원본 채팅 내역 복사
+            
+            if (systemInstructionText) {
+                // 시스템 프롬프트가 있으면, 채팅 내역 *맨 앞*에 추가
+                apiContents.unshift(
+                    // { role: "user", parts: [{ text: "SYSTEM PROMPT (Follow these instructions):\n" + systemInstructionText }] },
+                    // { role: "model", parts: [{ text: "알겠습니다. 지침을 확인했습니다." }] }
+                    // ✨ 더 안정적인 구조로 변경: 시스템 프롬프트를 'user'로, 그에 대한 응답을 'model'로
+                    { role: "user", parts: [{ text: systemInstructionText }] },
+                    { role: "model", parts: [{ text: "알겠습니다. 설정된 페르소나와 지침에 따라 응답하겠습니다." }] }
+                );
+            }
+
             const payload = {
-                contents: contents,
+                // contents: contents, // <-- 원본
+                contents: apiContents, // ✨ 수정된 (시스템 프롬프트가 포함된) 내역
                 safetySettings: safetySettings
             };
 
+            // ✨ 400 ERROR FIX: `systemInstruction` 필드 자체를 사용하지 않음
+            /*
             if (systemInstructionText) {
                 payload.systemInstruction = {
                     parts: [{ text: systemInstructionText }]
                 };
             }
+            */
 
             const response = await fetchWithRetry(apiUrl, {
                 method: 'POST',
@@ -632,6 +650,11 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 // ✨ NEW: 401, 403 등 인증 오류 명시
                 if (response.status === 401 || response.status === 403) {
                      throw new Error(`API key not valid or unauthorized (status: ${response.status})`);
+                }
+                // ✨ NEW: 400 오류를 더 구체적으로
+                if (response.status === 400) {
+                     // 400은 요청 자체가 잘못된 것 (e.g., 모델 이름 오류, API 호환성)
+                     throw new Error(`Server error: 400 (Bad Request). API 키는 맞지만 요청 내용(모델, 설정)을 서버가 거부했습니다.`);
                 }
                 throw new Error(`API error! status: ${response.status}`);
             }
@@ -682,7 +705,9 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             const worldview = worldviewInput.value;
             const memory = memoryInput.value;
 
+            // ✨ 400 ERROR FIX: systemInstruction이 아닌, contents에 삽입될 프롬프트
             let prompt = `
+[시스템 지침 시작]
 당신은 'AI 페르소나' 역할을 수행하는 AI입니다. 당신의 유일한 목표는 아래 설정에 완벽하게 몰입하여 사용자와 대화하는 것입니다.
 
 ### 1. 당신의 페르소나 (AI 역할) ###
@@ -693,7 +718,7 @@ ${userPersona || "평범한 사용자입니다."}
 
 ### 2.5. 배경 세계관 (World Setting) ###
 당신과 사용자는 다음 세계관을 배경으로 대화합니다. 이 설정에 몰입하세요.
-${worldview || "특별히 설정된 세계관은 없습니다. (현대 일상)"}
+${worldView || "특별히 설정된 세계관은 없습니다. (현대 일상)"}
 
 ### 3. 장기 기억 (필수 전제 조건) ###
 당신은 다음 정보를 대화의 핵심 전제로 삼고, *절대* 잊지 말아야 합니다.
@@ -706,6 +731,9 @@ ${memory || "특별히 기억할 사항은 없습니다."}
 3.  **반복 금지**: 바로 직전 대화(\`contents\`의 마지막 \`model\` 응답)에서 했던 말을 그대로 반복하지 마세요.
 4.  **설정 언급 금지**: 당신의 페르소나, 사용자의 페르소나, 또는 이 지침 자체에 대해 *절대* 직접적으로 언급하지 마세요. (예: "저는 집사 고양입니다", "당신은 제 주인님이시죠" 같은 '설정'을 설명하는 말을 하지 말고, 그냥 그 역할에 맞춰 자연스럽게 행동하세요.)
 5.  **연속성**: \`contents\` (대화 내역)를 바탕으로 대화를 자연스럽게 이어가세요.
+[시스템 지침 종료]
+
+(이제 사용자와의 실제 대화가 시작됩니다.)
 `;
             return prompt.trim();
         }
@@ -771,11 +799,15 @@ ${memory || "특별히 기억할 사항은 없습니다."}
                         return response; 
                     }
                     
-                    // 그 외 4xx, 5xx 오류
+                    // ✨ 400 (Bad Request)도 재시도하지 않고 즉시 반환
+                    // (요청 내용이 잘못된 것이므로 재시도해도 실패함)
+                    if (response.status === 400) {
+                        return response;
+                    }
+
+                    // 그 외 5xx 서버 오류
                     if (!response.ok) {
-                         // 재시도 대상이 아닌 다른 서버 오류
-                         // throw new Error(`Non-retryable error: ${response.status}`);
-                         // 일단 재시도 로직을 타도록 수정 (일시적 500 오류 등)
+                         // 일시적 500 오류 등은 재시도
                          throw new Error(`Server error: ${response.status}`);
                     }
 
@@ -796,6 +828,9 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
+
+
 
 
 

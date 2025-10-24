@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    
+    <!-- ✨ PWA & Mobile: 뷰포트 설정 (필수) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+    <title>Gemini 페르소나 챗</title>
+    
+    <!-- ✨ PWA: 웹 앱 매니페스트 링크 -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- ✨ PWA & Mobile: 아이폰 홈 화면 앱 관련 설정 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="페르소나 챗">
+    
+    <!-- ✨ PWA: 아이폰 홈 화면 아이콘 (192px짜리 임시 사용) -->
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+
+    <!-- ✨ PWA: 테마 색상 (manifest.json과 일치) -->
+    <meta name="theme-color" content="#1f2937">
+
+    <!-- Tailwind CSS 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Inter 폰트 적용 */
+        body {
+            font-family: 'Inter', sans-serif;
+            /* ✨ PWA: 아이폰에서 스크롤 바운스 효과(Overscroll) 방지 */
+            overscroll-behavior: none;
+        }
+        /* 스크롤바 디자인 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2d3748; /* gray-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a5568; /* gray-600 */
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #718096; /* gray-500 */
+        }
+        /* 채팅창 자동 스크롤을 위한 설정 */
+        #chat-display {
+            scroll-behavior: smooth;
+        }
+        
+        /* ✨ PWA: 아이폰 상단 노치/다이나믹 아일랜드 영역만큼 패딩 확보 */
+        /* (h-screen 대신 height: 100dvh; 사용) */
+        body {
+            /* 100vh 대신 100dvh (dynamic viewport height) 사용 */
+            /* iOS 사파리에서 주소창/메뉴바 제외한 실제 화면 크기 */
+            min-height: 100dvh; 
+        }
+        #app-container {
+            /* PWA 모드일 때 상단 안전 영역(노치) 확보 */
+            padding-top: env(safe-area-inset-top);
+            /* PWA 모드일 때 하단 안전 영역(홈 인디케이터) 확보 */
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        /* ✨ PWA: 채팅 입력창 하단 인디케이터 영역 확보 (더 확실하게) */
+        #chat-form {
+             padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+        }
+
+    </style>
+    <!-- Inter 폰트 로드 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white">
+
+    <!-- ✨ ADD: Mobile Sidebar Backdrop -->
+    <div id="sidebar-backdrop" class="fixed inset-0 bg-black/60 z-40 hidden md:hidden"></div>
+
+    <!-- ✨ PWA: h-screen을 min-height: 100dvh; 로 제어하기 위한 컨테이너 -->
+    <div id="app-container" class="flex flex-col md:flex-row w-full" style="min-height: 100dvh;">
+
+        <!-- 1. 설정 사이드바 -->
+        <div id="sidebar" class="w-full md:w-1/3 lg:w-1/4 bg-gray-800 p-4 overflow-y-auto 
+            fixed inset-y-0 left-0 z-50 transform -translate-x-full md:relative md:translate-x-0 
+            transition-transform duration-300 ease-in-out md:flex-shrink-0
+            pb-24 md:pb-4"> <!-- ✨ PWA: 사이드바 하단 패딩 확보 -->
+            
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-white">⚙️ 페르소나 설정</h2>
+                <button id="btn-close-sidebar" class="md:hidden p-1 rounded-full hover:bg-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- 캐릭터 페르소나 (AI) -->
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <label for="char-persona" class="block text-sm font-medium text-blue-300">🤖 캐릭터 페르소나 (AI의 역할)</label>
+                    <button id="btn-suggest-persona" class="text-xs bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded-lg transition-all shadow-md active:scale-95">
+                        ✨ 추천
+                    </button>
+                </div>
+                <textarea id="char-persona" rows="8"
+                    class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="예: 너는 친절한 집사 고양이다. 말 끝마다 '냥'을 붙인다. 나를 '주인님'이라고 부른다."
+                ></textarea>
+            </div>
+
+            <!-- 유저 페르소나 (나) -->
+            <div class="mt-4">
+                <label for="user-persona" class="block mb-2 text-sm font-medium text-green-300">👤 나의 페르소나 (나의 역할)</label>
+                <textarea id="user-persona" rows="4"
+                    class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-green-500 focus:border-green-500"
+                    placeholder="예: 나는 이 고양이를 입양한 주인이다. 고양이에게 오늘 있었던 일을 상담한다."
+                ></textarea>
+            </div>
+
+            <!-- 배경 세계관 -->
+            <div class="mt-4">
+                <label for="worldview-setting" class="block mb-2 text-sm font-medium text-cyan-300">🌍 배경 세계관 (AI와 내가 살아갈 곳)</label>
+                <textarea id="worldview-setting" rows="6"
+                    class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-cyan-500 focus:border-cyan-500"
+                    placeholder="예: 여기는 2077년, 사이버펑크 도시. AI는 인간의 조력자이지만, 기업들의 감시를 받고 있다."
+                ></textarea>
+            </div>
+
+            <!-- 장기 기억 -->
+            <div class="mt-4">
+                <div class="flex justify-between items-center mb-2">
+                    <label for="memory" class="block text-sm font-medium text-yellow-300">🧠 장기 기억 (AI가 꼭 기억할 것)</label>
+
+                    <button id="btn-extract-memory" class="text-xs bg-yellow-600 hover:bg-yellow-700 text-white py-1 px-2 rounded-lg transition-all shadow-md active:scale-95">
+                        ✨ 기억 추출
+                    </button>
+                </div>
+                <textarea id="memory" rows="10"
+                    class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-yellow-500 focus:border-yellow-500"
+                    placeholder="예:
+- 나의 이름은 [내 이름]이다.
+- 나는 초콜릿을 싫어한다.
+- 나의 생일은 10월 23일이다."
+                ></textarea>
+            </div>
+            
+            <!-- ✨ NEW: API 키 관리 섹션 -->
+            <div class="mt-6 pt-4 border-t border-gray-700">
+                <label for="api-key-input" class="block mb-2 text-sm font-medium text-orange-300">🔑 API 키 관리</label>
+                <p class="text-xs text-gray-400 mb-2">
+                    GitHub 배포 시, 여기에 본인의 Gemini API 키를 입력하고 저장하세요.
+                    이 키는 GitHub이 아닌, 이 브라우저(폰)에만 저장됩니다.
+                </p>
+                <div class="flex space-x-2">
+                    <input type="password" id="api-key-input"
+                           class="flex-1 p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-orange-500 focus:border-orange-500"
+                           placeholder="AIzaSy... (Gemini API 키 붙여넣기)">
+                    <button id="btn-save-key"
+                            class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-all shadow-md active:scale-95">
+                        저장
+                    </button>
+                </div>
+                 <button id="btn-show-key"
+                    class="mt-2 text-xs text-gray-400 hover:text-white">
+                    (키 보이기)
+                </button>
+            </div>
+
+        </div>
+
+        <!-- 2. 채팅 영역 -->
+        <!-- ✨ PWA: h-full 대신 flex-1 사용 (부모가 min-height: 100dvh 이므로) -->
+        <div class="flex-1 flex flex-col"> 
+            
+            <!-- ✨ PWA: 상단 노치 영역 확보용 패딩은 app-container로 이동함 -->
+            <div class="bg-gray-800 p-4 border-b border-gray-700 shadow-md md:border-l flex justify-between items-center">
+                <h1 class="text-xl font-bold text-white">Gemini 페르소나 챗</h1>
+                
+                <div class="flex items-center space-x-2">
+                    <button id="btn-clear-chat" class="p-1 rounded-md hover:bg-gray-700" title="채팅 기록 삭제">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+
+                    <button id="btn-open-sidebar" class="md:hidden p-1 rounded-md hover:bg-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 채팅 메시지 표시 영역 -->
+            <div id="chat-display" class="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-900">
+                <div id="welcome-message" class="p-3 rounded-lg bg-gray-700 self-start max-w-xs md:max-w-md">
+                    <span class="font-bold block text-blue-300">🤖 AI</span>
+                    <p class="text-white">안녕하세요! 왼쪽 탭에서 페르소나를 설정한 후 저에게 말을 걸어주세요. (모바일에선 햄버거 버튼 ☰)</p>
+                </div>
+                <!-- ✨ NEW: API 키 확인 메시지 (JS로 제어) -->
+                <div id="api-key-alert" class="p-3 rounded-lg bg-red-700 self-start mr-auto hidden">
+                    <span class="font-bold block text-red-200">🚨 시스템</span>
+                    <p class="text-white">
+                        Gemini API 키가 설정되지 않았습니다.
+                        <br>
+                        채팅을 시작하려면, 사이드바(☰) 하단의 'API 키 관리' 메뉴에서 본인의 API 키를 입력하고 저장해주세요.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 로딩 인디케이터 -->
+            <div id="loading" class="p-4 hidden flex items-center justify-center">
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-gray-400">AI가 응답을 생성 중입니다...</span>
+            </div>
+
+            <!-- 채팅 입력 폼 -->
+            <!-- ✨ PWA: 하단 인디케이터 영역 확보 (style="padding-bottom: ...") -->
+            <form id="chat-form" class="p-4 bg-gray-800 border-t border-gray-700 md:border-l">
+                <div class="flex space-x-2">
+                    <textarea id="chat-input" rows="1"
+                        style="resize: none; max-height: 120px; overflow-y: auto;"
+                        class="flex-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        placeholder="메시지를 입력하세요 (Shift+Enter로 전송)" autocomplete="off"></textarea>
+                    <button id="send-button" type="submit"
+                        class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200">
+                        전송
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 
+        ============================================================
+        자바스크립트 코드
+        ============================================================
+    -->
+    <script type="module">
+        // 1. 전역 변수 및 DOM 요소 가져오기
+        const chatDisplay = document.getElementById('chat-display');
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-button');
+        const loadingIndicator = document.getElementById('loading');
+        
+        const charPersonaInput = document.getElementById('char-persona');
+        const userPersonaInput = document.getElementById('user-persona');
+        const worldviewInput = document.getElementById('worldview-setting');
+        const memoryInput = document.getElementById('memory');
+        const btnSuggestPersona = document.getElementById('btn-suggest-persona');
+        const btnExtractMemory = document.getElementById('btn-extract-memory');
+        const btnClearChat = document.getElementById('btn-clear-chat'); 
+        
+        const sidebar = document.getElementById('sidebar');
+        const btnOpenSidebar = document.getElementById('btn-open-sidebar');
+        const btnCloseSidebar = document.getElementById('btn-close-sidebar');
+        const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+        
+        // ✨ NEW: API 키 관리 DOM
+        const apiKeyInput = document.getElementById('api-key-input');
+        const btnSaveKey = document.getElementById('btn-save-key');
+        const btnShowKey = document.getElementById('btn-show-key');
+        const apiKeyAlert = document.getElementById('api-key-alert');
+        const API_KEY_STORAGE_ID = 'gemini-api-key';
+
+
+        // Gemini API 설정
+        // ✨ FIX: apiKey를 전역 변수가 아닌, localStorage에서 불러오는 '상태'로 관리
+        let userApiKey = ""; // (앱 로드 시 loadApiKey()가 채워줌)
+        const modelName = "gemini-2.5-pro"; // ✨ y 요청으로 Pro 모델로 변경 (표준 이름으로)
+        // (apiUrl은 callGeminiApi 함수 내에서 동적으로 생성)
+
+        // 대화 내역
+        let chatHistory = [];
+
+        // 2. 이벤트 리스너
+        
+        // ✨ NEW: 앱 로드 시 localStorage에서 API 키 불러오기
+        document.addEventListener('DOMContentLoaded', loadApiKey);
+        
+        chatForm.addEventListener('submit', handleSendChat);
+        sendButton.addEventListener('click', handleSendChat);
+
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.shiftKey) {
+                e.preventDefault(); 
+                chatForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            }
+        });
+
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+        
+        btnSuggestPersona.addEventListener('click', handleSuggestPersona);
+        btnExtractMemory.addEventListener('click', handleExtractMemory);
+        btnClearChat.addEventListener('click', handleClearChat); 
+        
+        btnOpenSidebar.addEventListener('click', () => {
+            sidebar.classList.remove('-translate-x-full');
+            sidebarBackdrop.classList.remove('hidden');
+        });
+        btnCloseSidebar.addEventListener('click', () => {
+            sidebar.classList.add('-translate-x-full');
+            sidebarBackdrop.classList.add('hidden');
+        });
+        sidebarBackdrop.addEventListener('click', () => {
+            btnCloseSidebar.click();
+        });
+        
+        chatDisplay.addEventListener('click', function(e) {
+            const deleteButton = e.target.closest('.btn-delete');
+            if (deleteButton) {
+                e.stopPropagation(); 
+                const bubble = deleteButton.closest('[data-id]');
+                if (bubble) {
+                    const idToDelete = bubble.dataset.id;
+                    bubble.remove();
+                    chatHistory = chatHistory.filter(msg => String(msg.id) !== String(idToDelete));
+                }
+            }
+        });
+
+        // ✨ NEW: API 키 저장/표시 이벤트
+        btnSaveKey.addEventListener('click', handleSaveKey);
+        btnShowKey.addEventListener('click', () => {
+             if (apiKeyInput.type === 'password') {
+                apiKeyInput.type = 'text';
+                btnShowKey.textContent = '(키 숨기기)';
+            } else {
+                apiKeyInput.type = 'password';
+                btnShowKey.textContent = '(키 보이기)';
+            }
+        });
+
+
+        // 3. ✨ NEW: API 키 관리 함수
+        
+        /**
+         * 앱 로드 시 localStorage에서 API 키를 불러와 UI와 전역 변수에 적용
+         */
+        function loadApiKey() {
+            const savedKey = localStorage.getItem(API_KEY_STORAGE_ID);
+            if (savedKey) {
+                userApiKey = savedKey;
+                apiKeyInput.value = savedKey; // (보안을 위해 보통 숨김 처리하지만, 편의상)
+                apiKeyAlert.classList.add('hidden'); // 키가 있으니 경고 숨김
+            } else {
+                // 키가 없음
+                apiKeyAlert.classList.remove('hidden'); // 경고 표시
+                userApiKey = "";
+            }
+        }
+
+        /**
+         * [저장] 버튼 클릭 시, 입력된 키를 localStorage에 저장하고 변수 업데이트
+         */
+        function handleSaveKey(e) {
+            e.preventDefault();
+            const newKey = apiKeyInput.value.trim();
+            if (newKey && newKey.startsWith("AIzaSy")) {
+                userApiKey = newKey;
+                localStorage.setItem(API_KEY_STORAGE_ID, newKey);
+                apiKeyAlert.classList.add('hidden'); // 경고 숨김
+                
+                // (선택적) 저장 완료 알림
+                displayMessage("API 키가 브라우저에 안전하게 저장되었습니다. 이제 채팅을 시작할 수 있습니다.", 'model');
+                
+                // 모바일에서 키 저장 후 사이드바 닫기
+                if (window.innerWidth < 768) {
+                    btnCloseSidebar.click();
+                }
+
+            } else {
+                displayMessage("올바른 Gemini API 키 (AIzaSy...)를 입력하세요.", 'error');
+                userApiKey = "";
+                localStorage.removeItem(API_KEY_STORAGE_ID); // 잘못된 키 제거
+                apiKeyAlert.classList.remove('hidden'); // 경고 표시
+            }
+        }
+
+
+        /**
+         * 4. 폼 제출 (메시지 전송) 핸들러
+         */
+        async function handleSendChat(event) {
+            event.preventDefault(); 
+
+            // ✨ NEW: API 키가 없으면 전송 차단
+            if (!userApiKey) {
+                apiKeyAlert.classList.remove('hidden'); // 경고 표시
+                displayMessage("API 키가 없습니다. 사이드바(☰)에서 키를 먼저 저장하세요.", 'error');
+                if (window.innerWidth < 768) { // 모바일이면 사이드바 열기
+                    btnOpenSidebar.click();
+                }
+                return;
+            }
+
+            let prompt = chatInput.value.trim();
+            const userMessageId = Date.now() + '-user';
+            let displayUserMessage = true; 
+
+            if (prompt !== "") {
+                chatInput.value = ""; 
+                chatInput.style.height = 'auto';
+                displayUserMessage = true; 
+            } else {
+                if (chatHistory.length === 0) {
+                    displayMessage('대화를 시작하려면 먼저 메시지를 입력해주세요.', 'model');
+                    return;
+                }
+                if (!loadingIndicator.classList.contains('hidden')) {
+                    return; 
+                }
+                prompt = "(사용자가 아무 말 없이 다음 말을 기다립니다. 이어서 말해주세요.)";
+                displayUserMessage = false; 
+            }
+
+            if (displayUserMessage) {
+                displayMessage(prompt, 'user', userMessageId);
+            }
+
+            chatHistory.push({
+                id: userMessageId,
+                role: "user",
+                parts: [{ text: prompt }]
+            });
+
+            loadingIndicator.classList.remove('hidden');
+
+            try {
+                const systemPrompt = buildSystemPrompt();
+                
+                // ✨ FIX: userApiKey를 인자로 전달
+                const text = await callGeminiApi(chatHistory, systemPrompt, userApiKey);
+
+                const modelMessageId = Date.now() + '-model';
+                displayMessage(text, 'model', modelMessageId);
+                
+                chatHistory.push({
+                    id: modelMessageId,
+                    role: "model",
+                    parts: [{ text: text }]
+                });
+
+            } catch (error) {
+                console.error("Error in handleSendChat:", error);
+                
+                // ✨ NEW: API 키 인증 오류 감지
+                if (error.message && (error.message.includes('401') || error.message.includes('403') || error.message.includes('API key not valid'))) {
+                     displayMessage(`API 키 인증 오류가 발생했습니다. 키가 올바른지 확인하거나, 키 설정이 Google AI Studio에서 올바르게 되었는지 확인하세요.`, 'error');
+                     apiKeyAlert.classList.remove('hidden'); // 경고 표시
+                } else {
+                     displayMessage(`오류가 발생했습니다: ${error.message}`, 'error');
+                }
+            } finally {
+                loadingIndicator.classList.add('hidden');
+                
+                if (window.innerWidth < 768) {
+                    btnCloseSidebar.click();
+                }
+            }
+        }
+
+        /**
+         * ✨ 새 기능: 채팅 기록 삭제 핸들러
+         */
+        function handleClearChat() {
+            chatHistory = [];
+            const messages = chatDisplay.querySelectorAll('div[data-id], div.bg-red-700');
+            messages.forEach(msg => msg.remove());
+            chatDisplay.scrollTop = 0;
+            
+            // 키가 없으면 경고 메시지는 다시 표시
+            if (!userApiKey) {
+                apiKeyAlert.classList.remove('hidden');
+            }
+        }
+
+
+        /**
+         * ✨ 새 기능: 페르소나 추천
+         */
+        async function handleSuggestPersona(e) {
+            e.preventDefault(); 
+            
+            // ✨ NEW: API 키 체크
+            if (!userApiKey) {
+                 displayMessage("API 키가 없습니다. '✨ 추천' 기능을 사용하려면 먼저 키를 저장하세요.", 'error');
+                 if (window.innerWidth < 768) btnOpenSidebar.click();
+                 return;
+            }
+
+            const originalText = btnSuggestPersona.textContent;
+            btnSuggestPersona.disabled = true;
+            btnSuggestPersona.textContent = '생성 중...';
+
+            const prompt = "당신은 창의적인 작가입니다. AI 채팅 앱에서 사용할 수 있는 독특하고 재미있는 '캐릭터 페르소나' 아이디어 3가지를 추천해 주세요. 각 아이디어는 2~3줄로 설명하고, '---'로 구분해 주세요.";
+            
+            try {
+                const text = await callGeminiApi(
+                    [{ role: "user", parts: [{ text: prompt }] }],
+                    null, // 별도 시스템 프롬프트 없음
+                    userApiKey // ✨ API 키 전달
+                );
+                
+                if (text.trim() === "") {
+                     displayMessage('✨ 추천할 아이디어가 떠오르지 않습니다. 다시 시도해 주세요.', 'error');
+                } else {
+                    charPersonaInput.value = text;
+                    displayMessage('✨ AI가 새로운 페르소나 아이디어를 추천했습니다. 사이드바를 확인하세요!', 'model');
+                }
+
+            } catch (error) {
+                console.error("Error in handleSuggestPersona:", error);
+                displayMessage(`페르소나 추천 중 오류 발생: ${error.message}`, 'error');
+            } finally {
+                btnSuggestPersona.disabled = false;
+                btnSuggestPersona.textContent = originalText;
+            }
+        }
+
+        /**
+         * ✨ 새 기능: 대화에서 기억 추출
+         */
+        async function handleExtractMemory(e) {
+            e.preventDefault();
+            
+            // ✨ NEW: API 키 체크
+            if (!userApiKey) {
+                 displayMessage("API 키가 없습니다. '✨ 기억 추출' 기능을 사용하려면 먼저 키를 저장하세요.", 'error');
+                 if (window.innerWidth < 768) btnOpenSidebar.click();
+                 return;
+            }
+            
+            if (chatHistory.length === 0) {
+                displayMessage('아직 대화 내역이 없습니다.', 'error');
+                return;
+            }
+
+            const originalText = btnExtractMemory.textContent;
+            btnExtractMemory.disabled = true;
+            btnExtractMemory.textContent = '추출 중...';
+
+            const systemPrompt = `
+당신은 매우 꼼꼼한 비서입니다.
+제공되는 대화 내역(\`contents\`)을 분석하여, 'user'(사용자)에 대한 핵심 정보(이름, 나이, 좋아하는 것, 싫어하는 것, 약속, 중요한 사건 등)를 요약해 주세요.
+'장기 기억' 탭에 추가할 수 있도록, 각 항목을 글머리 기호(-)로 구분하여 목록으로만 응답해 주세요.
+AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실만 추출합니다.
+            `.trim();
+
+            try {
+                const text = await callGeminiApi(
+                    chatHistory, 
+                    systemPrompt,
+                    userApiKey // ✨ API 키 전달
+                );
+                
+                if (text.trim() === "") {
+                    displayMessage('✨ 분석 완료. 대화에서 추출할 만한 특별한 기억을 찾지 못했습니다.', 'model');
+                } else {
+                    const existingMemory = memoryInput.value.trim();
+                    memoryInput.value = existingMemory + (existingMemory ? '\n' : '') + text;
+                    displayMessage('✨ 대화에서 주요 정보를 추출하여 [장기 기억] 탭에 추가했습니다. 사이드바를 확인하세요!', 'model');
+                }
+            } catch (error) {
+                console.error("Error in handleExtractMemory:", error);
+                displayMessage(`기억 추출 중 오류 발생: ${error.message}`, 'error');
+            } finally {
+                btnExtractMemory.disabled = false;
+                btnExtractMemory.textContent = originalText;
+            }
+        }
+
+        /**
+         * ✨ API 호출 공통 함수 (수정됨)
+         * @param {Array} contents - 전송할 대화 내역
+         * @param {string|null} systemInstructionText - 적용할 시스템 프롬프트
+         * @param {string} apiKey - 사용자가 입력한 API 키
+         * @returns {Promise<string>} - AI 응답 텍스트
+         */
+        async function callGeminiApi(contents, systemInstructionText, apiKey) {
+            
+            // ✨ NEW: API 키가 없으면 즉시 오류 반환
+            if (!apiKey) {
+                throw new Error("API key is missing.");
+            }
+
+            // ✨ NEW: API URL 동적 생성
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+            // ✨ y의 요청으로 안전 설정을 'BLOCK_NONE' (차단 안함)으로 고정
+            const safetyThreshold = "BLOCK_NONE"; 
+            
+            const safetySettings = [
+                { category: "HARM_CATEGORY_HARASSMENT", threshold: safetyThreshold },
+                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: safetyThreshold },
+                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: safetyThreshold },
+                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: safetyThreshold },
+            ];
+
+            const payload = {
+                contents: contents,
+                safetySettings: safetySettings
+            };
+
+            if (systemInstructionText) {
+                payload.systemInstruction = {
+                    parts: [{ text: systemInstructionText }]
+                };
+            }
+
+            const response = await fetchWithRetry(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                // ✨ NEW: 401, 403 등 인증 오류 명시
+                if (response.status === 401 || response.status === 403) {
+                     throw new Error(`API key not valid or unauthorized (status: ${response.status})`);
+                }
+                throw new Error(`API error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.promptFeedback) {
+                console.error("Prompt Feedback:", result.promptFeedback);
+                const blockReason = result.promptFeedback.blockReason || '알 수 없는 이유';
+                throw new Error(`입력이 차단되었습니다. (이유: ${blockReason})`);
+            }
+            
+            const candidate = result.candidates?.[0];
+
+            if (candidate) {
+                if (candidate.finishReason === 'STOP') {
+                    if (candidate.content && 
+                        candidate.content.parts && 
+                        candidate.content.parts.length > 0 &&
+                        candidate.content.parts[0].text != null 
+                    ) {
+                        return candidate.content.parts[0].text;
+                    } else {
+                        return ""; 
+                    }
+                } else {
+                    if (safetyThreshold === "BLOCK_NONE" && candidate.finishReason === "SAFETY") {
+                        return "(시스템: AI의 응답이 안전 설정에 의해 차단되었습니다.)";
+                    }
+                    throw new Error(`API가 정상 종료되지 않았습니다. (이유: ${candidate.finishReason || '알 수 없음'})`);
+                }
+            } else {
+                 if (result.promptFeedback) {
+                    const blockReason = result.promptFeedback.blockReason || '알 수 없음';
+                     throw new Error(`입력이 차단되었습니다. (이Y유: ${blockReason})`);
+                }
+                throw new Error("API로부터 유효한 응답(candidates)을 받지 못했습니다.");
+            }
+        }
+
+
+        /**
+         * 3. 시스템 프롬프트 생성 (핵심 기능)
+         */
+        function buildSystemPrompt() {
+            const charPersona = charPersonaInput.value;
+            const userPersona = userPersonaInput.value;
+            const worldview = worldviewInput.value;
+            const memory = memoryInput.value;
+
+            let prompt = `
+당신은 'AI 페르소나' 역할을 수행하는 AI입니다. 당신의 유일한 목표는 아래 설정에 완벽하게 몰입하여 사용자와 대화하는 것입니다.
+
+### 1. 당신의 페르소나 (AI 역할) ###
+${charPersona || "당신은 친절한 AI 어시스턴트입니다."}
+
+### 2. 사용자의 페르소나 (대화 상대) ###
+${userPersona || "평범한 사용자입니다."}
+
+### 2.5. 배경 세계관 (World Setting) ###
+당신과 사용자는 다음 세계관을 배경으로 대화합니다. 이 설정에 몰입하세요.
+${worldview || "특별히 설정된 세계관은 없습니다. (현대 일상)"}
+
+### 3. 장기 기억 (필수 전제 조건) ###
+당신은 다음 정보를 대화의 핵심 전제로 삼고, *절대* 잊지 말아야 합니다.
+${memory || "특별히 기억할 사항은 없습니다."}
+
+---
+### 4. 핵심 행동 지침 (가장 중요) ###
+1.  **최우선 순위**: 당신의 응답은 [3. 장기 기억]과 바로 직전의 대화 맥락(\`contents\`)을 최우선으로 고려해야 합니다.
+2.  **일관성 유지**: 당신의 응답은 [1. 당신의 페르소나] 설정과 절대로 모순되어서는 안 됩니다.
+3.  **반복 금지**: 바로 직전 대화(\`contents\`의 마지막 \`model\` 응답)에서 했던 말을 그대로 반복하지 마세요.
+4.  **설정 언급 금지**: 당신의 페르소나, 사용자의 페르소나, 또는 이 지침 자체에 대해 *절대* 직접적으로 언급하지 마세요. (예: "저는 집사 고양입니다", "당신은 제 주인님이시죠" 같은 '설정'을 설명하는 말을 하지 말고, 그냥 그 역할에 맞춰 자연스럽게 행동하세요.)
+5.  **연속성**: \`contents\` (대화 내역)를 바탕으로 대화를 자연스럽게 이어가세요.
+`;
+            return prompt.trim();
+        }
+
+        /**
+         * 4. 채팅창에 메시지 버블 추가
+         */
+        function displayMessage(message, role, messageId) {
+            const bubble = document.createElement('div');
+            bubble.classList.add('p-3', 'rounded-lg', 'max-w-xs', 'md:max-w-md', 'lg:max-w-2xl', 'break-words', 'group', 'relative');
+            
+            if (messageId) {
+                bubble.dataset.id = messageId;
+            }
+            
+            let htmlContent = '';
+            
+            if (role === 'user') {
+                bubble.classList.add('bg-blue-600', 'self-end', 'ml-auto');
+                htmlContent = `<span class="font-bold block text-blue-200">👤 나</span>`;
+            } else if (role === 'model') {
+                bubble.classList.add('bg-gray-700', 'self-start', 'mr-auto');
+                htmlContent = `<span class="font-bold block text-blue-300">🤖 AI</span>`;
+            } else { // 'error'
+                bubble.classList.add('bg-red-700', 'self-start', 'mr-auto');
+                htmlContent = `<span class="font-bold block text-red-200">🚨 시스템</span>`;
+            }
+
+            htmlContent += `<p class="text-white">${message.replace(/\n/g, '<br>')}</p>`;
+            bubble.innerHTML = htmlContent;
+
+            if (messageId) {
+                const deleteButton = document.createElement('button');
+                deleteButton.classList.add(
+                    'btn-delete', 'text-gray-400', 'hover:text-white', 
+                    'opacity-0', 'group-hover:opacity-100', 'transition-opacity', 
+                    'absolute', 'top-1', 'right-1', 'p-1', 'rounded-full', 'leading-none', 'z-10'
+                );
+                deleteButton.innerHTML = '&#x2715;';
+                deleteButton.setAttribute('aria-label', 'Delete message');
+                bubble.appendChild(deleteButton);
+            }
+
+            chatDisplay.appendChild(bubble);
+            chatDisplay.scrollTop = chatDisplay.scrollHeight;
+        }
+
+        /**
+         * 5. API 호출 재시도 함수 (Exponential Backoff)
+         */
+        async function fetchWithRetry(url, options, retries = 3, delay = 1000) {
+            let lastError;
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    // 429 (Too Many Requests) 또는 503 (Service Unavailable) 일 때만 재시도
+                    if (response.status === 429 || response.status === 503) {
+                        throw new Error(`Retryable error: ${response.status}`);
+                    }
+                    // 401, 403 등 키 인증 오류는 재시도하지 않고 즉시 반환
+                    // (재시도해도 성공할 수 없으므로)
+                    if (response.status === 401 || response.status === 403) {
+                        return response; 
+                    }
+                    
+                    // 그 외 4xx, 5xx 오류
+                    if (!response.ok) {
+                         // 재시도 대상이 아닌 다른 서버 오류
+                         // throw new Error(`Non-retryable error: ${response.status}`);
+                         // 일단 재시도 로직을 타도록 수정 (일시적 500 오류 등)
+                         throw new Error(`Server error: ${response.status}`);
+                    }
+
+                    return response; // 성공
+                } catch (error) {
+                    lastError = error;
+                    // console.log(`Attempt ${i + 1} failed. Retrying in ${delay}ms...`);
+                    await new Promise(res => setTimeout(res, delay));
+                    delay *= 2; 
+                }
+            }
+            if (!lastError) {
+                lastError = new Error("Network request failed after retries.");
+            }
+            throw lastError;
+        }
+
+    </script>
+</body>
+</html>
+
+
+
+

@@ -219,7 +219,8 @@
             <div id="loading" class="p-4 hidden flex items-center justify-center">
                 <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8
+                     0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 <span class="text-gray-400">AI가 응답을 생성 중입니다...</span>
             </div>
@@ -276,9 +277,8 @@
 
 
         // Gemini API 설정
-        // ✨ FIX: apiKey를 전역 변수가 아닌, localStorage에서 불러오는 '상태'로 관리
         let userApiKey = ""; // (앱 로드 시 loadApiKey()가 채워줌)
-        const modelName = "gemini-2.5-flash"; // ✨ 400 오류 최종 해결 위해 'Flash' 모델로 복귀 (AIza... 키는 이것만 지원함)
+        const modelName = "gemini-2.5-flash-preview-09-2025"; // 'Flash' 모델 사용 (AIza... 키 호환)
         // (apiUrl은 callGeminiApi 함수 내에서 동적으로 생성)
 
         // 대화 내역
@@ -328,6 +328,7 @@
                 if (bubble) {
                     const idToDelete = bubble.dataset.id;
                     bubble.remove();
+                    // ✨ 400 FIX: chatHistory에는 'id'가 포함되어 있으므로 필터링은 'id'로 함
                     chatHistory = chatHistory.filter(msg => String(msg.id) !== String(idToDelete));
                 }
             }
@@ -355,11 +356,10 @@
             const savedKey = localStorage.getItem(API_KEY_STORAGE_ID);
             if (savedKey) {
                 userApiKey = savedKey;
-                apiKeyInput.value = savedKey; // (보안을 위해 보통 숨김 처리하지만, 편의상)
-                apiKeyAlert.classList.add('hidden'); // 키가 있으니 경고 숨김
+                apiKeyInput.value = savedKey; 
+                apiKeyAlert.classList.add('hidden'); 
             } else {
-                // 키가 없음
-                apiKeyAlert.classList.remove('hidden'); // 경고 표시
+                apiKeyAlert.classList.remove('hidden'); 
                 userApiKey = "";
             }
         }
@@ -373,12 +373,10 @@
             if (newKey && newKey.startsWith("AIzaSy")) {
                 userApiKey = newKey;
                 localStorage.setItem(API_KEY_STORAGE_ID, newKey);
-                apiKeyAlert.classList.add('hidden'); // 경고 숨김
+                apiKeyAlert.classList.add('hidden'); 
                 
-                // (선택적) 저장 완료 알림
                 displayMessage("API 키가 브라우저에 안전하게 저장되었습니다. 이제 채팅을 시작할 수 있습니다.", 'model');
                 
-                // 모바일에서 키 저장 후 사이드바 닫기
                 if (window.innerWidth < 768) {
                     btnCloseSidebar.click();
                 }
@@ -386,8 +384,8 @@
             } else {
                 displayMessage("올바른 Gemini API 키 (AIzaSy...)를 입력하세요.", 'error');
                 userApiKey = "";
-                localStorage.removeItem(API_KEY_STORAGE_ID); // 잘못된 키 제거
-                apiKeyAlert.classList.remove('hidden'); // 경고 표시
+                localStorage.removeItem(API_KEY_STORAGE_ID); 
+                apiKeyAlert.classList.remove('hidden'); 
             }
         }
 
@@ -398,11 +396,10 @@
         async function handleSendChat(event) {
             event.preventDefault(); 
 
-            // ✨ NEW: API 키가 없으면 전송 차단
             if (!userApiKey) {
-                apiKeyAlert.classList.remove('hidden'); // 경고 표시
+                apiKeyAlert.classList.remove('hidden'); 
                 displayMessage("API 키가 없습니다. 사이드바(☰)에서 키를 먼저 저장하세요.", 'error');
-                if (window.innerWidth < 768) { // 모바일이면 사이드바 열기
+                if (window.innerWidth < 768) { 
                     btnOpenSidebar.click();
                 }
                 return;
@@ -432,6 +429,7 @@
                 displayMessage(prompt, 'user', userMessageId);
             }
 
+            // ✨ 400 FIX: 'id' 필드는 chatHistory (내부 저장용)에만 저장
             chatHistory.push({
                 id: userMessageId,
                 role: "user",
@@ -441,14 +439,15 @@
             loadingIndicator.classList.remove('hidden');
 
             try {
+                // ✨ 400 FIX: 시스템 프롬프트 생성 (Flash 모델 호환 방식)
                 const systemPrompt = buildSystemPrompt();
                 
-                // ✨ FIX: userApiKey를 인자로 전달
                 const text = await callGeminiApi(chatHistory, systemPrompt, userApiKey);
 
                 const modelMessageId = Date.now() + '-model';
                 displayMessage(text, 'model', modelMessageId);
                 
+                // ✨ 400 FIX: 'id' 필드는 chatHistory (내부 저장용)에만 저장
                 chatHistory.push({
                     id: modelMessageId,
                     role: "model",
@@ -458,10 +457,12 @@
             } catch (error) {
                 console.error("Error in handleSendChat:", error);
                 
-                // ✨ NEW: API 키 인증 오류 감지
                 if (error.message && (error.message.includes('401') || error.message.includes('403') || error.message.includes('API key not valid'))) {
                      displayMessage(`API 키 인증 오류가 발생했습니다. 키가 올바른지 확인하거나, 키 설정이 Google AI Studio에서 올바르게 되었는지 확인하세요.`, 'error');
-                     apiKeyAlert.classList.remove('hidden'); // 경고 표시
+                     apiKeyAlert.classList.remove('hidden'); 
+                } else if (error.message && error.message.includes('400')) {
+                     // 400 오류는 이제 여기서 잡힘
+                     displayMessage(`Server error: 400 (Bad Request). API 키는 맞지만 요청 내용(JSON 형식 등)을 서버가 거부했습니다.`, 'error');
                 } else {
                      displayMessage(`오류가 발생했습니다: ${error.message}`, 'error');
                 }
@@ -483,7 +484,6 @@
             messages.forEach(msg => msg.remove());
             chatDisplay.scrollTop = 0;
             
-            // 키가 없으면 경고 메시지는 다시 표시
             if (!userApiKey) {
                 apiKeyAlert.classList.remove('hidden');
             }
@@ -496,7 +496,6 @@
         async function handleSuggestPersona(e) {
             e.preventDefault(); 
             
-            // ✨ NEW: API 키 체크
             if (!userApiKey) {
                  displayMessage("API 키가 없습니다. '✨ 추천' 기능을 사용하려면 먼저 키를 저장하세요.", 'error');
                  if (window.innerWidth < 768) btnOpenSidebar.click();
@@ -510,10 +509,11 @@
             const prompt = "당신은 창의적인 작가입니다. AI 채팅 앱에서 사용할 수 있는 독특하고 재미있는 '캐릭터 페르소나' 아이디어 3가지를 추천해 주세요. 각 아이디어는 2~3줄로 설명하고, '---'로 구분해 주세요.";
             
             try {
+                // ✨ 400 FIX: 'id'가 없는 단발성 요청
                 const text = await callGeminiApi(
                     [{ role: "user", parts: [{ text: prompt }] }],
-                    null, // 별도 시스템 프롬프트 없음
-                    userApiKey // ✨ API 키 전달
+                    null, 
+                    userApiKey 
                 );
                 
                 if (text.trim() === "") {
@@ -538,7 +538,6 @@
         async function handleExtractMemory(e) {
             e.preventDefault();
             
-            // ✨ NEW: API 키 체크
             if (!userApiKey) {
                  displayMessage("API 키가 없습니다. '✨ 기억 추출' 기능을 사용하려면 먼저 키를 저장하세요.", 'error');
                  if (window.innerWidth < 768) btnOpenSidebar.click();
@@ -562,10 +561,11 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             `.trim();
 
             try {
+                // ✨ 400 FIX: chatHistory (id 포함)가 전달됨
                 const text = await callGeminiApi(
                     chatHistory, 
                     systemPrompt,
-                    userApiKey // ✨ API 키 전달
+                    userApiKey 
                 );
                 
                 if (text.trim() === "") {
@@ -586,62 +586,39 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
 
         /**
          * ✨ API 호출 공통 함수 (수정됨)
-         * @param {Array} contents - 전송할 대화 내역
+         * @param {Array} contents - 전송할 대화 내역 (UI용 'id' 필드 포함)
          * @param {string|null} systemInstructionText - 적용할 시스템 프롬프트
          * @param {string} apiKey - 사용자가 입력한 API 키
          * @returns {Promise<string>} - AI 응답 텍스트
          */
         async function callGeminiApi(contents, systemInstructionText, apiKey) {
             
-            // ✨ NEW: API 키가 없으면 즉시 오류 반환
             if (!apiKey) {
                 throw new Error("API key is missing.");
             }
 
-            // ✨ NEW: API URL 동적 생성
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-            // ✨ y의 요청으로 안전 설정을 'BLOCK_NONE' (차단 안함)으로 고정
-            // const safetyThreshold = "BLOCK_NONE"; // <-- 400 오류의 마지막 용의자.
-            
-            // ✨ 400 오류 최종 테스트: safetySettings 자체를 페이로드에서 제거해 봅니다.
-            /*
-            const safetySettings = [
-                { category: "HARM_CATEGORY_HARASSMENT", threshold: safetyThreshold },
-                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: safetyThreshold },
-                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: safetyThreshold },
-                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: safetyThreshold },
-            ];
-            */
+            // ✨ 400 ERROR FIX (JSON): `contents` 배열에서 UI용 'id' 필드 제거
+            // API는 { role, parts } 객체만 받음
+            const apiSafeContents = contents.map(msg => ({
+                role: msg.role,
+                parts: msg.parts
+            }));
 
-            // ✨ 400 ERROR FIX: `systemInstruction`을 `contents` 배열에 "끼워넣기"
-            let apiContents = [...contents]; // 원본 채팅 내역 복사
-            
+
+            // ✨ 400 ERROR FIX (Flash 호환): `systemInstruction`을 `contents` 배열에 "끼워넣기"
             if (systemInstructionText) {
-                // 시스템 프롬프트가 있으면, 채팅 내역 *맨 앞*에 추가
-                apiContents.unshift(
-                    // { role: "user", parts: [{ text: "SYSTEM PROMPT (Follow these instructions):\n" + systemInstructionText }] },
-                    // { role: "model", parts: [{ text: "알겠습니다. 지침을 확인했습니다." }] }
-                    // ✨ 더 안정적인 구조로 변경: 시스템 프롬프트를 'user'로, 그에 대한 응답을 'model'로
+                apiSafeContents.unshift(
                     { role: "user", parts: [{ text: systemInstructionText }] },
                     { role: "model", parts: [{ text: "알겠습니다. 설정된 페르소나와 지침에 따라 응답하겠습니다." }] }
                 );
             }
 
             const payload = {
-                // contents: contents, // <-- 원본
-                contents: apiContents, // ✨ 수정된 (시스템 프롬프트가 포함된) 내역
-                // safetySettings: safetySettings // ✨ 400 오류 최종 테스트: 이 항목을 주석 처리
+                contents: apiSafeContents, // ✨ 'id'가 제거된 깨끗한 배열
+                // ✨ 400 오류 방지: safetySettings, systemInstruction 모두 제거 (기본값 사용)
             };
-
-            // ✨ 400 ERROR FIX: `systemInstruction` 필드 자체를 사용하지 않음
-            /*
-            if (systemInstructionText) {
-                payload.systemInstruction = {
-                    parts: [{ text: systemInstructionText }]
-                };
-            }
-            */
 
             const response = await fetchWithRetry(apiUrl, {
                 method: 'POST',
@@ -650,14 +627,12 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             });
 
             if (!response.ok) {
-                // ✨ NEW: 401, 403 등 인증 오류 명시
                 if (response.status === 401 || response.status === 403) {
                      throw new Error(`API key not valid or unauthorized (status: ${response.status})`);
                 }
-                // ✨ NEW: 400 오류를 더 구체적으로
                 if (response.status === 400) {
-                     // 400은 요청 자체가 잘못된 것 (e.g., 모델 이름 오류, API 호환성)
-                     throw new Error(`Server error: 400 (Bad Request). API 키는 맞지만 요청 내용(모델, 설정)을 서버가 거부했습니다.`);
+                     // 400은 이제 "잘못된 JSON" (id 필드) 때문일 것
+                     throw new Error(`Server error: 400 (Bad Request). API 키는 맞지만 요청 내용(JSON 형식 등)을 서버가 거부했습니다.`);
                 }
                 throw new Error(`API error! status: ${response.status}`);
             }
@@ -673,6 +648,7 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             const candidate = result.candidates?.[0];
 
             if (candidate) {
+                // ✨ 400 FIX: 안전 설정(safetySettings)을 안 보냈으므로, 'BLOCK_NONE' 관련 로직 제거
                 if (candidate.finishReason === 'STOP') {
                     if (candidate.content && 
                         candidate.content.parts && 
@@ -684,15 +660,13 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                         return ""; 
                     }
                 } else {
-                    if (safetyThreshold === "BLOCK_NONE" && candidate.finishReason === "SAFETY") {
-                        return "(시스템: AI의 응답이 안전 설정에 의해 차단되었습니다.)";
-                    }
+                    // ✨ 400 FIX: 'BLOCK_NONE' 관련 로직 제거
                     throw new Error(`API가 정상 종료되지 않았습니다. (이유: ${candidate.finishReason || '알 수 없음'})`);
                 }
             } else {
                  if (result.promptFeedback) {
                     const blockReason = result.promptFeedback.blockReason || '알 수 없음';
-                     throw new Error(`입력이 차단되었습니다. (이Y유: ${blockReason})`);
+                     throw new Error(`입력이 차단되었습니다. (이유: ${blockReason})`);
                 }
                 throw new Error("API로부터 유효한 응답(candidates)을 받지 못했습니다.");
             }
@@ -705,10 +679,9 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
         function buildSystemPrompt() {
             const charPersona = charPersonaInput.value;
             const userPersona = userPersonaInput.value;
-            const worldview = worldviewInput.value;
+            const worldview = worldviewInput.value; // ✨ 오타 수정됨
             const memory = memoryInput.value;
 
-            // ✨ 400 ERROR FIX: systemInstruction이 아닌, contents에 삽입될 프롬프트
             let prompt = `
 [시스템 지침 시작]
 당신은 'AI 페르소나' 역할을 수행하는 AI입니다. 당신의 유일한 목표는 아래 설정에 완벽하게 몰입하여 사용자와 대화하는 것입니다.
@@ -792,32 +765,21 @@ ${memory || "특별히 기억할 사항은 없습니다."}
             for (let i = 0; i < retries; i++) {
                 try {
                     const response = await fetch(url, options);
-                    // 429 (Too Many Requests) 또는 503 (Service Unavailable) 일 때만 재시도
                     if (response.status === 429 || response.status === 503) {
                         throw new Error(`Retryable error: ${response.status}`);
                     }
-                    // 401, 403 등 키 인증 오류는 재시도하지 않고 즉시 반환
-                    // (재시도해도 성공할 수 없으므로)
                     if (response.status === 401 || response.status === 403) {
                         return response; 
                     }
-                    
-                    // ✨ 400 (Bad Request)도 재시도하지 않고 즉시 반환
-                    // (요청 내용이 잘못된 것이므로 재시도해도 실패함)
                     if (response.status === 400) {
                         return response;
                     }
-
-                    // 그 외 5xx 서버 오류
                     if (!response.ok) {
-                         // 일시적 500 오류 등은 재시도
                          throw new Error(`Server error: ${response.status}`);
                     }
-
                     return response; // 성공
                 } catch (error) {
                     lastError = error;
-                    // console.log(`Attempt ${i + 1} failed. Retrying in ${delay}ms...`);
                     await new Promise(res => setTimeout(res, delay));
                     delay *= 2; 
                 }
@@ -831,6 +793,8 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
+
 
 
 

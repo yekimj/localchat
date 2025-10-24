@@ -600,8 +600,8 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-            // ✨ y 요청: 검열 완화 (높은 수위만 차단)
-            const safetyThreshold = "BLOCK_ONLY_HIGH";
+            // ✨ y 요청: 검열 완화 (차단 안 함)
+            const safetyThreshold = "BLOCK_NONE";
             const safetySettings = [
                 { category: "HARM_CATEGORY_HARASSMENT", threshold: safetyThreshold },
                 { category: "HARM_CATEGORY_HATE_SPEECH", threshold: safetyThreshold },
@@ -804,6 +804,7 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
 
 
 

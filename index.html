@@ -105,29 +105,29 @@
             <!-- 캐릭터 페르소나 (AI) -->
             <div>
                 <div class="flex justify-between items-center mb-2">
-                    <label for="char-persona" class="block text-sm font-medium text-blue-300">🤖 캐릭터 페르소나 (AI의 역할)</label>
+                    <label for="char-persona" class="block text-sm font-medium text-blue-300">캐릭터의 페르소나</label>
                     <button id="btn-suggest-persona" class="text-xs bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded-lg transition-all shadow-md active:scale-95">
                         ✨ 추천
                     </button>
                 </div>
                 <textarea id="char-persona" rows="8"
                     class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="예: 너는 친절한 집사 고양이다. 말 끝마다 '냥'을 붙인다. 나를 '주인님'이라고 부른다."
+                    placeholder="예: 에스파의 'Supernova'를 표절했다는 논란에 싸인 모차르트."
                 ></textarea>
             </div>
 
             <!-- 유저 페르소나 (나) -->
             <div class="mt-4">
-                <label for="user-persona" class="block mb-2 text-sm font-medium text-green-300">👤 나의 페르소나 (나의 역할)</label>
+                <label for="user-persona" class="block mb-2 text-sm font-medium text-green-300">유저의 페르소나</label>
                 <textarea id="user-persona" rows="4"
                     class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-green-500 focus:border-green-500"
-                    placeholder="예: 나는 이 고양이를 입양한 주인이다. 고양이에게 오늘 있었던 일을 상담한다."
+                    placeholder="예: 그런 그를 흥미롭게 바라보는 살리에리."
                 ></textarea>
             </div>
 
             <!-- 배경 세계관 -->
             <div class="mt-4">
-                <label for="worldview-setting" class="block mb-2 text-sm font-medium text-cyan-300">🌍 배경 세계관 (AI와 내가 살아갈 곳)</label>
+                <label for="worldview-setting" class="block mb-2 text-sm font-medium text-cyan-300">세계관</label>
                 <textarea id="worldview-setting" rows="6"
                     class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-cyan-500 focus:border-cyan-500"
                     placeholder="예: 여기는 2077년, 사이버펑크 도시. AI는 인간의 조력자이지만, 기업들의 감시를 받고 있다."
@@ -137,7 +137,7 @@
             <!-- 장기 기억 -->
             <div class="mt-4">
                 <div class="flex justify-between items-center mb-2">
-                    <label for="memory" class="block text-sm font-medium text-yellow-300">🧠 장기 기억 (AI가 꼭 기억할 것)</label>
+                    <label for="memory" class="block text-sm font-medium text-yellow-300">장기 기억</label>
 
                     <button id="btn-extract-memory" class="text-xs bg-yellow-600 hover:bg-yellow-700 text-white py-1 px-2 rounded-lg transition-all shadow-md active:scale-95">
                         ✨ 기억 추출
@@ -249,7 +249,7 @@
                     <textarea id="chat-input" rows="1"
                         style="resize: none; max-height: 120px; overflow-y: auto;"
                         class="flex-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                        placeholder="메시지를 입력하세요 (Shift+Enter로 전송)" autocomplete="off"></textarea>
+                        placeholder="(Shift+Enter로 전송)" autocomplete="off"></textarea>
                     <button id="send-button" type="submit"
                         class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200">
                         전송
@@ -747,8 +747,8 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             // ✨ URL 오타 수정: labels -> language
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-            // ✨ y 요청: 검열 완화 (높은 수위만 차단)
-            const safetyThreshold = "BLOCK_ONLY_HIGH";
+            // ✨ y 요청: 검열 안 함
+            const safetyThreshold = "BLOCK_NONE";
             const safetySettings = [
                 { category: "HARM_CATEGORY_HARASSMENT", threshold: safetyThreshold },
                 { category: "HARM_CATEGORY_HATE_SPEECH", threshold: safetyThreshold },
@@ -967,6 +967,7 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
 
 
 

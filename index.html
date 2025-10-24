@@ -278,7 +278,7 @@
         // Gemini API 설정
         // ✨ FIX: apiKey를 전역 변수가 아닌, localStorage에서 불러오는 '상태'로 관리
         let userApiKey = ""; // (앱 로드 시 loadApiKey()가 채워줌)
-        const modelName = "gemini-2.5-flash"; // ✨ 400 오류 최종 확인 위해, 1.0 Pro (호환성 제일 높은) 모델로 변경
+        const modelName = "gemini-2.5-flash-preview-09-2025"; // ✨ 400 오류 최종 확인 위해, 1.0 Pro (호환성 제일 높은) 모델로 변경
         // (apiUrl은 callGeminiApi 함수 내에서 동적으로 생성)
 
         // 대화 내역
@@ -796,6 +796,7 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
 
 
 

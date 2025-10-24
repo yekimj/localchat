@@ -602,14 +602,17 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
             // ✨ y의 요청으로 안전 설정을 'BLOCK_NONE' (차단 안함)으로 고정
-            const safetyThreshold = "BLOCK_NONE"; 
+            // const safetyThreshold = "BLOCK_NONE"; // <-- 400 오류의 마지막 용의자.
             
+            // ✨ 400 오류 최종 테스트: safetySettings 자체를 페이로드에서 제거해 봅니다.
+            /*
             const safetySettings = [
                 { category: "HARM_CATEGORY_HARASSMENT", threshold: safetyThreshold },
                 { category: "HARM_CATEGORY_HATE_SPEECH", threshold: safetyThreshold },
                 { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: safetyThreshold },
                 { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: safetyThreshold },
             ];
+            */
 
             // ✨ 400 ERROR FIX: `systemInstruction`을 `contents` 배열에 "끼워넣기"
             let apiContents = [...contents]; // 원본 채팅 내역 복사
@@ -628,7 +631,7 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             const payload = {
                 // contents: contents, // <-- 원본
                 contents: apiContents, // ✨ 수정된 (시스템 프롬프트가 포함된) 내역
-                safetySettings: safetySettings
+                // safetySettings: safetySettings // ✨ 400 오류 최종 테스트: 이 항목을 주석 처리
             };
 
             // ✨ 400 ERROR FIX: `systemInstruction` 필드 자체를 사용하지 않음
@@ -828,6 +831,7 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
 
 
 

@@ -278,7 +278,8 @@
 
         // Gemini API 설정
         let userApiKey = ""; // (앱 로드 시 loadApiKey()가 채워줌)
-        const modelName = "gemini-2.5-flash-preview-09-2025"; // 'Flash' 모델 사용 (AIza... 키 호환)
+        // ✨ y 요청: Pro 모델로 복귀
+        const modelName = "gemini-2.5-pro-preview-09-2025"; 
         // (apiUrl은 callGeminiApi 함수 내에서 동적으로 생성)
 
         // 대화 내역
@@ -599,6 +600,15 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
+            // ✨ y 요청: 검열 완화 (높은 수위만 차단)
+            const safetyThreshold = "BLOCK_ONLY_HIGH";
+            const safetySettings = [
+                { category: "HARM_CATEGORY_HARASSMENT", threshold: safetyThreshold },
+                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: safetyThreshold },
+                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: safetyThreshold },
+                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: safetyThreshold },
+            ];
+
             // ✨ 400 ERROR FIX (JSON): `contents` 배열에서 UI용 'id' 필드 제거
             // API는 { role, parts } 객체만 받음
             const apiSafeContents = contents.map(msg => ({
@@ -617,7 +627,7 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
 
             const payload = {
                 contents: apiSafeContents, // ✨ 'id'가 제거된 깨끗한 배열
-                // ✨ 400 오류 방지: safetySettings, systemInstruction 모두 제거 (기본값 사용)
+                safetySettings: safetySettings // ✨ y 요청: 검열 완화 설정 다시 추가
             };
 
             const response = await fetchWithRetry(apiUrl, {
@@ -648,7 +658,7 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             const candidate = result.candidates?.[0];
 
             if (candidate) {
-                // ✨ 400 FIX: 안전 설정(safetySettings)을 안 보냈으므로, 'BLOCK_NONE' 관련 로직 제거
+                // ✨ 400 FIX: 안전 설정(safetySettings)을 보냈으므로, 'BLOCK_ONLY_HIGH' 관련 로직 추가
                 if (candidate.finishReason === 'STOP') {
                     if (candidate.content && 
                         candidate.content.parts && 
@@ -660,12 +670,13 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                         return ""; 
                     }
                 } else {
-                    // ✨ 400 FIX: 'BLOCK_NONE' 관련 로직 제거
+                    // ✨ 400 FIX: 'BLOCK_ONLY_HIGH' 관련 로직
+                    // (만약 차단되면 API가 이유를 알려줌)
                     throw new Error(`API가 정상 종료되지 않았습니다. (이유: ${candidate.finishReason || '알 수 없음'})`);
                 }
             } else {
                  if (result.promptFeedback) {
-                    const blockReason = result.promptFeedback.blockReason || '알 수 없음';
+                    const blockReason = result.promptFeedback.blockReason || '알 수 없는 이유';
                      throw new Error(`입력이 차단되었습니다. (이유: ${blockReason})`);
                 }
                 throw new Error("API로부터 유효한 응답(candidates)을 받지 못했습니다.");
@@ -793,6 +804,9 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
+
+
 
 
 

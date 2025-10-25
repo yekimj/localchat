@@ -910,12 +910,12 @@ ${memory || "특별히 기억할 사항은 없습니다."}
                 htmlContent = `<span class="font-bold block text-blue-200">나</span>`;
             } else if (role === 'model') {
                 bubble.classList.add('bg-gray-700', 'self-start', 'mr-auto');
-                // ✨ MODIFIED: AI -> 🤖 AI (이모지 추가)
-                htmlContent = `<span class="font-bold block text-blue-300">🤖 AI</span>`;
+                // ✨ MODIFIED: AI -> AI (이모지 추가)
+                htmlContent = `<span class="font-bold block text-blue-300">AI</span>`;
             } else { // 'error'
                 bubble.classList.add('bg-red-700', 'self-start', 'mr-auto');
-                // ✨ MODIFIED: 시스템 -> 🚨 시스템 (이모지 추가)
-                htmlContent = `<span class="font-bold block text-red-200">🚨 시스템</span>`;
+                // ✨ MODIFIED: 시스템 -> 시스템 (이모지 추가)
+                htmlContent = `<span class="font-bold block text-red-200">시스템</span>`;
             }
 
             bubble.innerHTML = htmlContent;
@@ -987,6 +987,7 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
 
 
 

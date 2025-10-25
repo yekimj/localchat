@@ -33,6 +33,10 @@
             font-family: 'Inter', sans-serif;
             /* ✨ PWA: 아이폰에서 스크롤 바운스 효과(Overscroll) 방지 */
             overscroll-behavior: none;
+            /* ✨ y 요청 FIX: body에 상단 안전 영역 확보 */
+            padding-top: env(safe-area-inset-top);
+             /* ✨ y 요청 FIX: 스크롤 방지 위해 overflow hidden 추가 */
+            overflow: hidden;
         }
         /* 스크롤바 디자인 */
         ::-webkit-scrollbar {
@@ -55,21 +59,12 @@
         
         /* ✨ PWA: 아이폰 상단 노치/다이나믹 아일랜드 영역만큼 패딩 확보 */
         /* (h-screen 대신 height: 100dvh; 사용) */
-        body {
+        #app-container {
             /* 100vh 대신 100dvh (dynamic viewport height) 사용 */
             /* iOS 사파리에서 주소창/메뉴바 제외한 실제 화면 크기 */
-            min-height: 100dvh; 
-        }
-        #app-container {
-             /* ✨ y 요청 FIX: 상단 안전 영역 확보를 body로 이동 */
-            /* padding-top: env(safe-area-inset-top); */
+            height: 100dvh; 
             /* PWA 모드일 때 하단 안전 영역(홈 인디케이터) 확보 */
             padding-bottom: env(safe-area-inset-bottom);
-        }
-        
-         /* ✨ y 요청 FIX: body에 상단 안전 영역 확보 */
-        body {
-             padding-top: env(safe-area-inset-top);
         }
 
         /* ✨ PWA: 채팅 입력창 하단 인디케이터 영역 확보 (더 확실하게) */
@@ -89,11 +84,10 @@
     <!-- ✨ ADD: Mobile Sidebar Backdrop -->
     <div id="sidebar-backdrop" class="fixed inset-0 bg-black/60 z-40 hidden md:hidden"></div>
 
-    <!-- ✨ PWA: h-screen을 min-height: 100dvh; 로 제어하기 위한 컨테이너 -->
-    <div id="app-container" class="flex flex-col md:flex-row w-full" style="min-height: 100dvh;">
+    <!-- ✨ PWA: h-screen을 height: 100dvh; 로 제어하기 위한 컨테이너 -->
+    <div id="app-container" class="flex flex-col md:flex-row w-full">
 
         <!-- 1. 설정 사이드바 -->
-         <!-- ✨ y 요청 FIX: 모바일 상단 비침 방지 위해 pt 제거 (body에서 처리) -->
         <div id="sidebar" class="w-full md:w-1/3 lg:w-1/4 bg-gray-800 p-4 md:pt-4 overflow-y-auto 
             fixed inset-y-0 left-0 z-50 transform -translate-x-full md:relative md:translate-x-0 
             transition-transform duration-300 ease-in-out md:flex-shrink-0
@@ -116,7 +110,6 @@
                         ✨ 추천
                     </button>
                 </div>
-                <!-- ✨ y 요청: 페르소나 저장 기능을 위해 'persona-setting' 클래스 추가 -->
                 <textarea id="char-persona" rows="8"
                     class="persona-setting w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="예: 에스파의 'Supernova'를 표절했다는 논란에 싸인 모차르트."
@@ -126,7 +119,6 @@
             <!-- 유저 페르소나 (나) -->
             <div class="mt-4">
                 <label for="user-persona" class="block mb-2 text-sm font-medium text-green-300">유저의 페르소나</label>
-                <!-- ✨ y 요청: 페르소나 저장 기능을 위해 'persona-setting' 클래스 추가 -->
                 <textarea id="user-persona" rows="4"
                     class="persona-setting w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-green-500 focus:border-green-500"
                     placeholder="예: 그런 그를 흥미롭게 바라보는 살리에리."
@@ -136,7 +128,6 @@
             <!-- 배경 세계관 -->
             <div class="mt-4">
                 <label for="worldview-setting" class="block mb-2 text-sm font-medium text-cyan-300">세계관</label>
-                <!-- ✨ y 요청: 페르소나 저장 기능을 위해 'persona-setting' 클래스 추가 -->
                 <textarea id="worldview-setting" rows="6"
                     class="persona-setting w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-cyan-500 focus:border-cyan-500"
                     placeholder="예: 여기는 2077년, 사이버펑크 도시. AI는 인간의 조력자이지만, 기업들의 감시를 받고 있다."
@@ -152,7 +143,6 @@
                         ✨ 기억 추출
                     </button>
                 </div>
-                <!-- ✨ y 요청: 페르소나 저장 기능을 위해 'persona-setting' 클래스 추가 -->
                 <textarea id="memory" rows="10"
                     class="persona-setting w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-yellow-500 focus:border-yellow-500"
                     placeholder="예:
@@ -186,12 +176,12 @@
 
         </div>
 
-        <!-- 2. 채팅 영역 -->
-        <!-- ✨ PWA: h-full 대신 flex-1 사용 (부모가 min-height: 100dvh 이므로) -->
-        <div class="flex-1 flex flex-col"> 
+        <!-- ✨ y 요청 FIX: 채팅 영역 레이아웃 수정 -->
+        <!-- flex-1 flex flex-col h-full 로 변경 (h-full 필수) -->
+        <div class="flex-1 flex flex-col h-full"> 
             
-            <!-- ✨ y 요청: 모바일 헤더 터치 토글 위해 id 추가, sticky 제거 -->
-            <div id="chat-header" class="bg-gray-800 p-4 border-b border-gray-700 shadow-md md:border-l flex justify-between items-center transition-opacity duration-300 ease-in-out">
+            <!-- 상단 헤더: 고정 (flex-shrink-0) -->
+            <div id="chat-header" class="flex-shrink-0 bg-gray-800 p-4 border-b border-gray-700 shadow-md md:border-l flex justify-between items-center">
                 <h1 class="text-xl font-bold text-white">Gemini 페르소나 챗</h1>
                 
                 <div class="flex items-center space-x-2">
@@ -226,8 +216,8 @@
                 </div>
             </div>
 
-            <!-- 채팅 메시지 표시 영역 -->
-            <div id="chat-display" class="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-900">
+            <!-- 채팅 메시지 표시 영역: 스크롤 (flex-1 overflow-y-auto) -->
+            <div id="chat-display" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-900">
                 <div id="welcome-message" class="p-3 rounded-lg bg-gray-700 self-start max-w-xs md:max-w-md">
                     <span class="font-bold block text-blue-300">AI</span>
                     <p class="text-white">안녕하세요! 왼쪽 탭에서 페르소나를 설정한 후 저에게 말을 걸어주세요. (모바일에선 햄버거 버튼 ☰)</p>
@@ -243,8 +233,8 @@
                 <!-- ✨ 저장된 채팅이 여기에 로드됩니다 -->
             </div>
 
-            <!-- 로딩 인디케이터 -->
-            <div id="loading" class="p-4 hidden flex items-center justify-center">
+            <!-- 로딩 인디케이터: 고정 (flex-shrink-0) -->
+            <div id="loading" class="flex-shrink-0 p-4 hidden flex items-center justify-center">
                 <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -252,9 +242,8 @@
                 <span class="text-gray-400">AI가 응답을 생성 중입니다...</span>
             </div>
 
-            <!-- 채팅 입력 폼 -->
-            <!-- ✨ PWA: 하단 인디케이터 영역 확보 (style="padding-bottom: ...") -->
-            <form id="chat-form" class="p-4 bg-gray-800 border-t border-gray-700 md:border-l">
+            <!-- 채팅 입력 폼: 고정 (flex-shrink-0) -->
+            <form id="chat-form" class="flex-shrink-0 p-4 bg-gray-800 border-t border-gray-700 md:border-l">
                 <div class="flex space-x-2">
                     <textarea id="chat-input" rows="1"
                         style="resize: none; max-height: 120px; overflow-y: auto;"
@@ -306,8 +295,8 @@
         
         // ✨ y 요청: 페르소나 저장용 키
         const PERSONA_SETTINGS_STORAGE_ID = 'gemini-persona-settings';
-        // ✨ y 요청: 모바일 헤더 토글용 DOM
-        const chatHeader = document.getElementById('chat-header');
+        // ✨ y 요청: 모바일 헤더 토글 기능 삭제
+        // const chatHeader = document.getElementById('chat-header');
         
         // Gemini API 설정
         let userApiKey = ""; 
@@ -350,22 +339,12 @@
             input.addEventListener('input', savePersonaSettings);
         });
 
-        // ✨ y 요청: 모바일 헤더 토글 기능 (채팅 영역 클릭 시)
+        // ✨ y 요청: 모바일 헤더 토글 기능 삭제 (고정 레이아웃으로 변경)
+        /*
         chatDisplay.addEventListener('click', function(e) {
-            // 삭제 버튼 클릭 시에는 헤더 토글 안 함
-            if (e.target.closest('.btn-delete')) {
-                // e.stopPropagation(); // 이 부분 삭제해야 함
-                handleDeleteMessage(e.target.closest('.btn-delete'));
-                return; 
-            }
-            
-            // 모바일 화면에서만 작동 (768px 미만)
-            if (window.innerWidth < 768) {
-                // opacity-0 클래스를 토글 (Tailwind 클래스)
-                chatHeader.classList.toggle('opacity-0');
-                chatHeader.classList.toggle('pointer-events-none'); // 숨겨졌을 때 클릭 방지
-            }
+            // ... (기존 토글 코드 삭제) ...
         });
+        */
 
         btnOpenSidebar.addEventListener('click', () => {
             sidebar.classList.remove('-translate-x-full');
@@ -379,7 +358,15 @@
             btnCloseSidebar.click();
         });
         
-        // ✨ y 요청: 삭제 버튼 클릭 로직을 별도 함수로 분리 (헤더 토글과 분리)
+        // 삭제 버튼 이벤트 리스너 (기존과 동일)
+         chatDisplay.addEventListener('click', function(e) {
+            const deleteButton = e.target.closest('.btn-delete');
+            if (deleteButton) {
+                handleDeleteMessage(deleteButton);
+            }
+         });
+        
+        // 삭제 버튼 클릭 로직
         function handleDeleteMessage(deleteButton) {
             const bubble = deleteButton.closest('[data-id]');
             if (bubble) {
@@ -445,6 +432,8 @@
                          displayMessage(msg.parts[0].text, msg.role, msg.id);
                     }
                 });
+                 // ✨ 로드 후 마지막 메시지로 스크롤
+                 chatDisplay.scrollTop = chatDisplay.scrollHeight;
             }
         }
 
@@ -590,6 +579,12 @@
                 apiKeyAlert.classList.remove('hidden'); 
                 chatDisplay.appendChild(apiKeyAlert);
             }
+             // 환영 메시지 다시 추가 (삭제 후에도 보이도록)
+            const welcomeMsg = document.createElement('div');
+            welcomeMsg.id = 'welcome-message';
+            welcomeMsg.classList.add('p-3', 'rounded-lg', 'bg-gray-700', 'self-start', 'max-w-xs', 'md:max-w-md');
+            welcomeMsg.innerHTML = `<span class="font-bold block text-blue-300">AI</span><p class="text-white">안녕하세요! 왼쪽 탭에서 페르소나를 설정한 후 저에게 말을 걸어주세요. (모바일에선 햄버거 버튼 ☰)</p>`;
+            chatDisplay.prepend(welcomeMsg); // 맨 위에 추가
         }
 
 
@@ -619,7 +614,6 @@
                 if (text.trim() === "") {
                      displayMessage('✨ 추천할 아이디어가 떠오르지 않습니다. 다시 시도해 주세요.', 'error');
                 } else {
-                    // ✨ y 요청: 추천받은 내용을 'char-persona'에만 넣고, 자동 저장
                     document.getElementById('char-persona').value = text;
                     savePersonaSettings(); 
                     displayMessage('✨ AI가 새로운 페르소나 아이디어를 추천했습니다. 사이드바를 확인하세요!', 'model');
@@ -659,7 +653,7 @@
 AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실만 추출합니다.
             `.trim();
 
-            try { // ✨ SyntaxError FIX: Try -> try
+            try { 
                 const text = await callGeminiApi(
                     chatHistory, 
                     systemPrompt,
@@ -672,7 +666,7 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                     const memoryTextarea = document.getElementById('memory');
                     const existingMemory = memoryTextarea.value.trim();
                     memoryTextarea.value = existingMemory + (existingMemory ? '\n' : '') + text;
-                    savePersonaSettings(); // ✨ y 요청: 추출된 기억도 자동 저장
+                    savePersonaSettings(); 
                     displayMessage('✨ 대화에서 주요 정보를 추출하여 [장기 기억] 탭에 추가했습니다. 사이드바를 확인하세요!', 'model');
                 }
             } catch (error) {
@@ -1022,6 +1016,9 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
+
+
 
 
 

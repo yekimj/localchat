@@ -177,7 +177,8 @@
         </div>
 
         <!-- 2. 채팅 영역 -->
-        <div class="flex-1 flex flex-col"> 
+        <!-- ✨ MODIFIED: overflow-hidden을 추가하여 모바일에서 내부 스크롤이 작동하도록 강제 -->
+        <div class="flex-1 flex flex-col overflow-hidden"> 
             
             <!-- 
               ✨ DELETED (y 요청): 상단바 (독바) 및 H1 타이틀 제거
@@ -305,7 +306,7 @@
 
         // Gemini API 설정
         let userApiKey = ""; 
-        const modelName = "gemini-2.5-flash";
+        const modelName = "gemini-2.5-pro";
         let chatHistory = [];
 
         // 2. 이벤트 리스너
@@ -986,6 +987,8 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
+
 
 
 

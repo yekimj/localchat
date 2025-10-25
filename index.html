@@ -73,6 +73,11 @@
              padding-bottom: calc(1rem + env(safe-area-inset-bottom));
         }
 
+        /* ✨ y 요청: 모바일 헤더 숨김/표시용 트랜지션 */
+        #chat-header {
+            transition: opacity 0.3s ease-in-out;
+        }
+
     </style>
     <!-- Inter 폰트 로드 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -110,8 +115,9 @@
                         ✨ 추천
                     </button>
                 </div>
+                <!-- ✨ y 요청: 페르소나 저장 기능을 위해 'persona-setting' 클래스 추가 -->
                 <textarea id="char-persona" rows="8"
-                    class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                    class="persona-setting w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="예: 에스파의 'Supernova'를 표절했다는 논란에 싸인 모차르트."
                 ></textarea>
             </div>
@@ -119,8 +125,9 @@
             <!-- 유저 페르소나 (나) -->
             <div class="mt-4">
                 <label for="user-persona" class="block mb-2 text-sm font-medium text-green-300">유저의 페르소나</label>
+                <!-- ✨ y 요청: 페르소나 저장 기능을 위해 'persona-setting' 클래스 추가 -->
                 <textarea id="user-persona" rows="4"
-                    class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-green-500 focus:border-green-500"
+                    class="persona-setting w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-green-500 focus:border-green-500"
                     placeholder="예: 그런 그를 흥미롭게 바라보는 살리에리."
                 ></textarea>
             </div>
@@ -128,8 +135,9 @@
             <!-- 배경 세계관 -->
             <div class="mt-4">
                 <label for="worldview-setting" class="block mb-2 text-sm font-medium text-cyan-300">세계관</label>
+                <!-- ✨ y 요청: 페르소나 저장 기능을 위해 'persona-setting' 클래스 추가 -->
                 <textarea id="worldview-setting" rows="6"
-                    class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-cyan-500 focus:border-cyan-500"
+                    class="persona-setting w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-cyan-500 focus:border-cyan-500"
                     placeholder="예: 여기는 2077년, 사이버펑크 도시. AI는 인간의 조력자이지만, 기업들의 감시를 받고 있다."
                 ></textarea>
             </div>
@@ -143,8 +151,9 @@
                         ✨ 기억 추출
                     </button>
                 </div>
+                <!-- ✨ y 요청: 페르소나 저장 기능을 위해 'persona-setting' 클래스 추가 -->
                 <textarea id="memory" rows="10"
-                    class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-yellow-500 focus:border-yellow-500"
+                    class="persona-setting w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-yellow-500 focus:border-yellow-500"
                     placeholder="예:
 - 나의 이름은 [내 이름]이다.
 - 나는 초콜릿을 싫어한다.
@@ -180,20 +189,20 @@
         <!-- ✨ PWA: h-full 대신 flex-1 사용 (부모가 min-height: 100dvh 이므로) -->
         <div class="flex-1 flex flex-col"> 
             
-            <!-- ✨ PWA: 상단 노치 영역 확보용 패딩은 app-container로 이동함 -->
-            <div class="bg-gray-800 p-4 border-b border-gray-700 shadow-md md:border-l flex justify-between items-center">
+            <!-- ✨ y 요청: 모바일 토글을 위해 'chat-header' ID 추가 -->
+            <div id="chat-header" class="bg-gray-800 p-4 border-b border-gray-700 shadow-md md:border-l flex justify-between items-center">
                 <h1 class="text-xl font-bold text-white">Gemini 페르소나 챗</h1>
                 
                 <div class="flex items-center space-x-2">
                     
-                    <!-- ✨ NEW: 다운로드 버튼 -->
+                    <!-- 채팅 기록 다운로드 버튼 -->
                     <button id="btn-download" class="p-1 rounded-md hover:bg-gray-700" title="채팅 기록 다운로드 (.txt)">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                     </button>
                     
-                    <!-- ✨ NEW: 마지막 답변 재생성 버튼 -->
+                    <!-- 마지막 답변 재생성 버튼 -->
                     <button id="btn-regenerate" class="p-1 rounded-md hover:bg-gray-700" title="마지막 AI 답변 재생성">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m-15.357-2a8.001 8.001 0 0015.357 2m0 0H15" />
@@ -230,7 +239,7 @@
                         채팅을 시작하려면, 사이드바(☰) 하단의 'API 키 관리' 메뉴에서 본인의 API 키를 입력하고 저장해주세요.
                     </p>
                 </div>
-                <!-- ✨ NEW: 저장된 채팅이 여기에 로드됩니다 -->
+                <!-- ✨ 저장된 채팅이 여기에 로드됩니다 -->
             </div>
 
             <!-- 로딩 인디케이터 -->
@@ -272,10 +281,9 @@
         const sendButton = document.getElementById('send-button');
         const loadingIndicator = document.getElementById('loading');
         
-        const charPersonaInput = document.getElementById('char-persona');
-        const userPersonaInput = document.getElementById('user-persona');
-        const worldviewInput = document.getElementById('worldview-setting');
-        const memoryInput = document.getElementById('memory');
+        // ✨ y 요청: 페르소나 저장을 위해 DOM 목록으로 가져오기
+        const personaInputs = document.querySelectorAll('.persona-setting'); // 4개 텍스트 영역
+        
         const btnSuggestPersona = document.getElementById('btn-suggest-persona');
         const btnExtractMemory = document.getElementById('btn-extract-memory');
         const btnClearChat = document.getElementById('btn-clear-chat'); 
@@ -291,22 +299,27 @@
         const apiKeyAlert = document.getElementById('api-key-alert');
         const API_KEY_STORAGE_ID = 'gemini-api-key';
 
-        // ✨ NEW: y 요청 기능 DOM
         const btnDownload = document.getElementById('btn-download');
         const btnRegenerate = document.getElementById('btn-regenerate');
-        const CHAT_HISTORY_STORAGE_ID = 'gemini-chat-history'; // ✨ NEW: 채팅 저장용 키
+        const CHAT_HISTORY_STORAGE_ID = 'gemini-chat-history'; 
+        
+        // ✨ y 요청: 페르소나 저장용 키
+        const PERSONA_SETTINGS_STORAGE_ID = 'gemini-persona-settings';
+        // ✨ y 요청: 모바일 헤더 토글용
+        const chatHeader = document.getElementById('chat-header');
 
         // Gemini API 설정
         let userApiKey = ""; 
-        const modelName = "gemini-2.5-pro"; // ✨ Pro 모델 (y 요청)
+        const modelName = "gemini-2.5-flash"; // ✨ 404/400 버그 없는 최종 안정화 모델
         let chatHistory = [];
 
         // 2. 이벤트 리스너
         
-        // ✨ MODIFIED: 앱 로드 시 키와 *채팅 기록* 모두 불러오기
+        // ✨ MODIFIED: 앱 로드 시 키, 채팅, 페르소나 모두 불러오기
         document.addEventListener('DOMContentLoaded', () => {
             loadApiKey();
-            loadChatHistory(); // ✨ NEW
+            loadChatHistory();
+            loadPersonaSettings(); // ✨ y 요청
         });
         
         chatForm.addEventListener('submit', handleSendChat);
@@ -328,9 +341,23 @@
         btnExtractMemory.addEventListener('click', handleExtractMemory);
         btnClearChat.addEventListener('click', handleClearChat); 
         
-        // ✨ NEW: y 요청 기능 리스너
         btnDownload.addEventListener('click', handleDownload);
         btnRegenerate.addEventListener('click', handleRegenerate);
+
+        // ✨ y 요청: 페르소나 텍스트 영역에 'input' 이벤트 발생 시 자동 저장
+        personaInputs.forEach(input => {
+            input.addEventListener('input', savePersonaSettings);
+        });
+
+        // ✨ y 요청: 모바일 헤더 토글
+        chatDisplay.addEventListener('click', () => {
+            // 768px (md) 미만일 때만 작동
+            if (window.innerWidth < 768) {
+                // opacity-0 클래스를 토글
+                chatHeader.classList.toggle('opacity-0');
+            }
+        });
+
 
         btnOpenSidebar.addEventListener('click', () => {
             sidebar.classList.remove('-translate-x-full');
@@ -345,15 +372,16 @@
         });
         
         chatDisplay.addEventListener('click', function(e) {
+            // 헤더 토글 이벤트와 겹치지 않도록
             const deleteButton = e.target.closest('.btn-delete');
             if (deleteButton) {
-                e.stopPropagation(); 
+                e.stopPropagation(); // 버블링 중지 (헤더 토글 방지)
                 const bubble = deleteButton.closest('[data-id]');
                 if (bubble) {
                     const idToDelete = bubble.dataset.id;
                     bubble.remove();
                     chatHistory = chatHistory.filter(msg => String(msg.id) !== String(idToDelete));
-                    saveChatHistory(); // ✨ NEW: 삭제 후에도 저장
+                    saveChatHistory(); 
                 }
             }
         });
@@ -370,7 +398,7 @@
         });
 
 
-        // 3. API 키 및 채팅 저장/로드 함수 (localStorage)
+        // 3. API 키 및 채팅/페르소나 저장/로드 함수 (localStorage)
         
         function loadApiKey() {
             const savedKey = localStorage.getItem(API_KEY_STORAGE_ID);
@@ -403,16 +431,11 @@
             }
         }
 
-        /**
-         * ✨ NEW: y 요청 - 새로고침 시 채팅 기록 로드
-         */
         function loadChatHistory() {
             const savedHistory = localStorage.getItem(CHAT_HISTORY_STORAGE_ID);
             if (savedHistory) {
                 chatHistory = JSON.parse(savedHistory);
-                // 저장된 기록을 UI에 다시 그림
                 chatHistory.forEach(msg => {
-                    // msg.parts[0].text가 없는 비정상 데이터 방어
                     if (msg.parts && msg.parts[0] && msg.parts[0].text) {
                          displayMessage(msg.parts[0].text, msg.role, msg.id);
                     }
@@ -420,16 +443,38 @@
             }
         }
 
-        /**
-         * ✨ NEW: y 요청 - 채팅 기록 변경 시 localStorage에 저장
-         */
         function saveChatHistory() {
-            // chatHistory가 비어있지 않을 때만 저장
             if (chatHistory && chatHistory.length > 0) {
                 localStorage.setItem(CHAT_HISTORY_STORAGE_ID, JSON.stringify(chatHistory));
             } else {
-                // 비어있으면 저장소에서도 삭제
                 localStorage.removeItem(CHAT_HISTORY_STORAGE_ID);
+            }
+        }
+
+        /**
+         * ✨ NEW: y 요청 - 페르소나 설정 저장
+         */
+        function savePersonaSettings() {
+            const settings = {
+                charPersona: document.getElementById('char-persona').value,
+                userPersona: document.getElementById('user-persona').value,
+                worldview: document.getElementById('worldview-setting').value,
+                memory: document.getElementById('memory').value
+            };
+            localStorage.setItem(PERSONA_SETTINGS_STORAGE_ID, JSON.stringify(settings));
+        }
+
+        /**
+         * ✨ NEW: y 요청 - 페르소나 설정 로드
+         */
+        function loadPersonaSettings() {
+            const savedSettings = localStorage.getItem(PERSONA_SETTINGS_STORAGE_ID);
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                document.getElementById('char-persona').value = settings.charPersona || '';
+                document.getElementById('user-persona').value = settings.userPersona || '';
+                document.getElementById('worldview-setting').value = settings.worldview || '';
+                document.getElementById('memory').value = settings.memory || '';
             }
         }
 
@@ -478,11 +523,12 @@
                 role: "user",
                 parts: [{ text: prompt }]
             });
-            saveChatHistory(); // ✨ NEW: 유저 메시지 전송 직후 저장
+            saveChatHistory(); // 유저 메시지 전송 직후 저장
 
             loadingIndicator.classList.remove('hidden');
 
             try {
+                // ✨ buildSystemPrompt는 이제 페르소나 저장소에서 값을 읽어옴
                 const systemPrompt = buildSystemPrompt();
                 const text = await callGeminiApi(chatHistory, systemPrompt, userApiKey);
 
@@ -494,13 +540,10 @@
                     role: "model",
                     parts: [{ text: text }]
                 });
-                saveChatHistory(); // ✨ NEW: AI 답변 받은 직후 저장
+                saveChatHistory(); // AI 답변 받은 직후 저장
 
             } catch (error) {
                 console.error("Error in handleSendChat:", error);
-                
-                // 에러 발생 시, 롤백 (유저 메시지 취소)
-                // (선택적: 지금은 그냥 둠. 에러 메시지가 표시되는 게 더 중요)
                 
                 if (error.message && (error.message.includes('401') || error.message.includes('403') || error.message.includes('API key not valid'))) {
                      displayMessage(`API 키 인증 오류가 발생했습니다. 키가 올바른지 확인하거나, 키 설정이 Google AI Studio에서 올바르게 되었는지 확인하세요.`, 'error');
@@ -527,14 +570,17 @@
          */
         function handleClearChat() {
             chatHistory = [];
-            localStorage.removeItem(CHAT_HISTORY_STORAGE_ID); // ✨ NEW: 저장된 기록 삭제
+            localStorage.removeItem(CHAT_HISTORY_STORAGE_ID); 
             
-            const messages = chatDisplay.querySelectorAll('div[data-id], div.bg-red-700, #api-key-alert'); // 알림 메시지도 삭제
+            // ✨ y 요청: 페르소나 설정은 삭제하면 안 됨.
+            // localStorage.removeItem(PERSONA_SETTINGS_STORAGE_ID); // <-- 이 줄은 없음
+
+            const messages = chatDisplay.querySelectorAll('div[data-id], div.bg-red-700, #api-key-alert'); 
             messages.forEach(msg => msg.remove());
             chatDisplay.scrollTop = 0;
             
             if (!userApiKey) {
-                apiKeyAlert.classList.remove('hidden'); // 키가 없다면 알림만 다시 표시
+                apiKeyAlert.classList.remove('hidden'); 
                 chatDisplay.appendChild(apiKeyAlert);
             }
         }
@@ -557,7 +603,6 @@
             const prompt = "당신은 창의적인 작가입니다. AI 채팅 앱에서 사용할 수 있는 독특하고 재미있는 '캐릭터 페르소나' 아이디어 3가지를 추천해 주세요. 각 아이디어는 2~3줄로 설명하고, '---'로 구분해 주세요.";
             
             try {
-                // 'id'가 없는 단발성 요청이므로 chatHistory 대신 임시 배열 전달
                 const text = await callGeminiApi(
                     [{ role: "user", parts: [{ text: prompt }] }],
                     null, 
@@ -567,7 +612,9 @@
                 if (text.trim() === "") {
                      displayMessage('✨ 추천할 아이디어가 떠오르지 않습니다. 다시 시도해 주세요.', 'error');
                 } else {
-                    charPersonaInput.value = text;
+                    // ✨ y 요청: 추천받은 내용을 'char-persona'에만 넣고, 자동 저장
+                    document.getElementById('char-persona').value = text;
+                    savePersonaSettings(); 
                     displayMessage('✨ AI가 새로운 페르소나 아이디어를 추천했습니다. 사이드바를 확인하세요!', 'model');
                 }
 
@@ -615,8 +662,10 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 if (text.trim() === "") {
                     displayMessage('✨ 분석 완료. 대화에서 추출할 만한 특별한 기억을 찾지 못했습니다.', 'model');
                 } else {
-                    const existingMemory = memoryInput.value.trim();
-                    memoryInput.value = existingMemory + (existingMemory ? '\n' : '') + text;
+                    const memoryTextarea = document.getElementById('memory');
+                    const existingMemory = memoryTextarea.value.trim();
+                    memoryTextarea.value = existingMemory + (existingMemory ? '\n' : '') + text;
+                    savePersonaSettings(); // ✨ y 요청: 추출된 기억도 자동 저장
                     displayMessage('✨ 대화에서 주요 정보를 추출하여 [장기 기억] 탭에 추가했습니다. 사이드바를 확인하세요!', 'model');
                 }
             } catch (error) {
@@ -628,20 +677,16 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             }
         }
 
-        // ---
-        // ✨ 5. y 요청 신규 기능 (다운로드, 재생성)
-        // ---
-
         /**
-         * ✨ NEW: y 요청 - 채팅 기록 다운로드 (.txt)
+         * 5. y 요청 신규 기능 (다운로드, 재생성)
          */
+
         function handleDownload() {
             if (chatHistory.length === 0) {
                 displayMessage('다운로드할 채팅 기록이 없습니다.', 'error');
                 return;
             }
 
-            // 1. 시스템 프롬프트 준비 (y가 구분해달라고 요청)
             const systemPrompt = buildSystemPrompt();
             let downloadContent = "[시스템 프롬프트 설정]\r\n";
             downloadContent += "--------------------\r\n";
@@ -650,18 +695,14 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             downloadContent += "[채팅 기록]\r\n";
             downloadContent += "--------------------\r\n";
 
-            // 2. 채팅 기록 준비 (y가 줄글로 요청)
             chatHistory.forEach(msg => {
                 const prefix = (msg.role === 'user') ? '나: ' : 'AI: ';
-                // msg.parts[0].text가 없는 비정상 데이터 방어
                  if (msg.parts && msg.parts[0] && msg.parts[0].text) {
-                     // \n (줄바꿈)을 \r\n (윈도우/메모장 줄바꿈)으로 통일
                      const text = msg.parts[0].text.replace(/\n/g, '\r\n');
                      downloadContent += prefix + text + "\r\n";
                  }
             });
 
-            // 3. 파일 생성 및 다운로드
             const blob = new Blob([downloadContent], { type: 'text/plain;charset=utf-8' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -672,23 +713,15 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             URL.revokeObjectURL(a.href);
         }
 
-        /**
-         * ✨ NEW: y 요청 - 마지막 AI 답변 재생성
-         */
         async function handleRegenerate() {
-            // 로딩 중이 아닐 때만
             if (!loadingIndicator.classList.contains('hidden')) {
                 return; 
             }
-            
-            // API 키 체크
             if (!userApiKey) {
                  displayMessage("API 키가 없습니다. '🔄 재생성' 기능을 사용하려면 먼저 키를 저장하세요.", 'error');
                  if (window.innerWidth < 768) btnOpenSidebar.click();
                  return;
             }
-
-            // 최소 1개 메시지(AI 답변)가 있어야 함
             if (chatHistory.length < 1) {
                  displayMessage('재생성할 AI 답변이 없습니다.', 'error');
                 return;
@@ -700,19 +733,15 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 return;
             }
 
-            // 1. 마지막 AI 답변을 chatHistory에서 제거
             chatHistory.pop();
-            saveChatHistory(); // ✨ 저장
+            saveChatHistory(); 
 
-            // 2. 마지막 AI 답변을 UI에서 제거
             const bubbles = chatDisplay.querySelectorAll('div[data-id]');
             bubbles[bubbles.length - 1].remove();
 
-            // 3. API 재호출 (chatHistory는 이제 유저의 마지막 프롬프트로 끝남)
             loadingIndicator.classList.remove('hidden');
             try {
                 const systemPrompt = buildSystemPrompt();
-                // (chatHistory에는 이미 유저 프롬프트가 다 담겨있음)
                 const text = await callGeminiApi(chatHistory, systemPrompt, userApiKey);
 
                 const modelMessageId = Date.now() + '-model';
@@ -723,12 +752,11 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                     role: "model",
                     parts: [{ text: text }]
                 });
-                saveChatHistory(); // ✨ AI 답변 받은 직후 저장
+                saveChatHistory(); 
 
             } catch (error) {
                 console.error("Error in handleRegenerate:", error);
                 displayMessage(`재생성 중 오류 발생: ${error.message}`, 'error');
-                // (이 경우 유저가 다시 '전송'이나 '재생성'을 눌러야 함)
             } finally {
                 loadingIndicator.classList.add('hidden');
             }
@@ -744,10 +772,10 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 throw new Error("API key is missing.");
             }
 
-            // ✨ URL 오타 수정: labels -> language
+            // ✨ URL 오타 수정: labels -> language (최종 수정)
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-            // ✨ y 요청: 검열 안 함
+            // ✨ y 요청: 검열 안 함 (BLOCK_NONE)
             const safetyThreshold = "BLOCK_NONE";
             const safetySettings = [
                 { category: "HARM_CATEGORY_HARASSMENT", threshold: safetyThreshold },
@@ -789,7 +817,10 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 if (response.status === 400) {
                      throw new Error(`Server error: 400 (Bad Request). API 키는 맞지만 요청 내용(JSON 형식 등)을 서버가 거부했습니다.`);
                 }
-                 // ✨ "Fail to fetch"는 fetchWithRetry에서 error로 잡힘
+                 // ✨ 404 (Not Found) 에러도 잡기
+                if (response.status === 404) {
+                     throw new Error(`Server error: 404 (Not Found). API 주소나 모델 이름을 찾을 수 없습니다.`);
+                }
                 throw new Error(`API error! status: ${response.status}`);
             }
 
@@ -815,6 +846,10 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                         return ""; 
                     }
                 } else {
+                    // BLOCK_NONE일 때, AI 응답이 'SAFETY'로 막힌 경우
+                    if (safetyThreshold === "BLOCK_NONE" && candidate.finishReason === "SAFETY") {
+                        return "(시스템: AI의 응답이 안전 설정에 의해 차단되었습니다.)";
+                    }
                     throw new Error(`API가 정상 종료되지 않았습니다. (이유: ${candidate.finishReason || '알 수 없음'})`);
                 }
             } else {
@@ -828,15 +863,15 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
 
 
         /**
-         * 7. 시스템 프롬프트 생성 (수정 없음)
+         * 7. 시스템 프롬프트 생성 (y 요청: 수정 안 함)
          */
         function buildSystemPrompt() {
-            const charPersona = charPersonaInput.value;
-            const userPersona = userPersonaInput.value;
-            const worldview = worldviewInput.value; 
-            const memory = memoryInput.value;
+            // ✨ y 요청: 저장된 페르소나 값을 DOM에서 직접 읽어옴
+            const charPersona = document.getElementById('char-persona').value;
+            const userPersona = document.getElementById('user-persona').value;
+            const worldview = document.getElementById('worldview-setting').value; 
+            const memory = document.getElementById('memory').value;
 
-            // ✨ 400 ERROR FIX: systemInstruction이 아닌, contents에 삽입될 프롬프트
             let prompt = `
 [시스템 지침 시작]
 당신은 'AI 페르소나' 역할을 수행하는 AI입니다. 당신의 유일한 목표는 아래 설정에 완벽하게 몰입하여 사용자와 대화하는 것입니다.
@@ -893,7 +928,6 @@ ${memory || "특별히 기억할 사항은 없습니다."}
                 htmlContent = `<span class="font-bold block text-red-200">🚨 시스템</span>`;
             }
 
-            // ✨ XSS 방지: innerHTML 대신 textContent를 사용하고 <br>은 수동으로 변환
             bubble.innerHTML = htmlContent; // 아이콘/라벨 삽입
             
             const p = document.createElement('p');
@@ -924,7 +958,6 @@ ${memory || "특별히 기억할 사항은 없습니다."}
             chatDisplay.appendChild(bubble);
             
             // 새 메시지가 추가되면 맨 아래로 스크롤
-            // (사용자가 위로 스크롤해서 로그 볼 때는 방해하지 않도록)
             if (chatDisplay.scrollHeight - chatDisplay.scrollTop < chatDisplay.clientHeight + 200) {
                  chatDisplay.scrollTop = chatDisplay.scrollHeight;
             }
@@ -945,6 +978,9 @@ ${memory || "특별히 기억할 사항은 없습니다."}
                         return response; 
                     }
                     if (response.status === 400) {
+                        return response;
+                    }
+                    if (response.status === 404) { // 404도 재시도 안 함
                         return response;
                     }
                     if (!response.ok) {

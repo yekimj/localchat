@@ -945,10 +945,10 @@ ${memory || "특별히 기억할 사항은 없습니다."}
                 htmlContent = `<span class="font-bold block text-blue-200">나</span>`;
             } else if (role === 'model') {
                 bubble.classList.add('bg-gray-700', 'self-start', 'mr-auto');
-                htmlContent = `<span class="font-bold block text-blue-300">🤖 AI</span>`;
+                htmlContent = `<span class="font-bold block text-blue-300">이야기꾼</span>`;
             } else { // 'error'
                 bubble.classList.add('bg-red-700', 'self-start', 'mr-auto');
-                htmlContent = `<span class="font-bold block text-red-200">🚨 시스템</span>`;
+                htmlContent = `<span class="font-bold block text-red-200">시스템</span>`;
             }
 
             bubble.innerHTML = htmlContent;
@@ -1020,4 +1020,5 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
 

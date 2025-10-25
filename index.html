@@ -73,11 +73,6 @@
              padding-bottom: calc(1rem + env(safe-area-inset-bottom));
         }
 
-        /* ✨ y 요청: 모바일 헤더 숨김/표시용 트랜지션 */
-        #chat-header {
-            transition: opacity 0.3s ease-in-out;
-        }
-
     </style>
     <!-- Inter 폰트 로드 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -189,8 +184,8 @@
         <!-- ✨ PWA: h-full 대신 flex-1 사용 (부모가 min-height: 100dvh 이므로) -->
         <div class="flex-1 flex flex-col"> 
             
-            <!-- ✨ y 요청: 모바일 토글을 위해 'chat-header' ID 추가 -->
-            <div id="chat-header" class="bg-gray-800 p-4 border-b border-gray-700 shadow-md md:border-l flex justify-between items-center">
+            <!-- ✨ y 요청: 모바일 헤더 고정 (sticky, top-0, z-10) -->
+            <div id="chat-header" class="sticky top-0 z-10 bg-gray-800 p-4 border-b border-gray-700 shadow-md md:border-l flex justify-between items-center">
                 <h1 class="text-xl font-bold text-white">Gemini 페르소나 챗</h1>
                 
                 <div class="flex items-center space-x-2">
@@ -305,9 +300,7 @@
         
         // ✨ y 요청: 페르소나 저장용 키
         const PERSONA_SETTINGS_STORAGE_ID = 'gemini-persona-settings';
-        // ✨ y 요청: 모바일 헤더 토글용
-        const chatHeader = document.getElementById('chat-header');
-
+        
         // Gemini API 설정
         let userApiKey = ""; 
         const modelName = "gemini-2.5-flash"; // ✨ 404/400 버그 없는 최종 안정화 모델
@@ -315,7 +308,7 @@
 
         // 2. 이벤트 리스너
         
-        // ✨ MODIFIED: 앱 로드 시 키, 채팅, 페르소나 모두 불러오기
+        // ✨ 앱 로드 시 키, 채팅, 페르소나 모두 불러오기
         document.addEventListener('DOMContentLoaded', () => {
             loadApiKey();
             loadChatHistory();
@@ -349,14 +342,7 @@
             input.addEventListener('input', savePersonaSettings);
         });
 
-        // ✨ y 요청: 모바일 헤더 토글
-        chatDisplay.addEventListener('click', () => {
-            // 768px (md) 미만일 때만 작동
-            if (window.innerWidth < 768) {
-                // opacity-0 클래스를 토글
-                chatHeader.classList.toggle('opacity-0');
-            }
-        });
+        // ✨ y 요청: 모바일 헤더 토글 기능 삭제 (헤더 고정으로 변경)
 
 
         btnOpenSidebar.addEventListener('click', () => {
@@ -372,10 +358,10 @@
         });
         
         chatDisplay.addEventListener('click', function(e) {
-            // 헤더 토글 이벤트와 겹치지 않도록
+            // 삭제 버튼 클릭 시
             const deleteButton = e.target.closest('.btn-delete');
             if (deleteButton) {
-                e.stopPropagation(); // 버블링 중지 (헤더 토글 방지)
+                e.stopPropagation(); // 버블링 중지
                 const bubble = deleteButton.closest('[data-id]');
                 if (bubble) {
                     const idToDelete = bubble.dataset.id;
@@ -550,8 +536,11 @@
                      apiKeyAlert.classList.remove('hidden'); 
                 } else if (error.message && error.message.includes('400')) {
                      displayMessage(`Server error: 400 (Bad Request). API 키는 맞지만 요청 내용(JSON 형식 등)을 서버가 거부했습니다.`, 'error');
-                } else if (error.message && error.message.includes('fetch')) {
-                     displayMessage(`네트워크 오류: API 서버에 연결할 수 없습니다. (주소: ${error.message})`, 'error');
+                } else if (error.message && error.message.includes('404')) {
+                     displayMessage(`Server error: 404 (Not Found). API 주소나 모델 이름을 찾을 수 없습니다.`, 'error');
+                }
+                else if (error.message && error.message.includes('fetch')) {
+                     displayMessage(`네트워크 오류: API 서버에 연결할 수 없습니다. (Check API URL or connection)`, 'error');
                 }
                  else {
                      displayMessage(`오류가 발생했습니다: ${error.message}`, 'error');
@@ -573,8 +562,7 @@
             localStorage.removeItem(CHAT_HISTORY_STORAGE_ID); 
             
             // ✨ y 요청: 페르소나 설정은 삭제하면 안 됨.
-            // localStorage.removeItem(PERSONA_SETTINGS_STORAGE_ID); // <-- 이 줄은 없음
-
+            
             const messages = chatDisplay.querySelectorAll('div[data-id], div.bg-red-700, #api-key-alert'); 
             messages.forEach(msg => msg.remove());
             chatDisplay.scrollTop = 0;
@@ -652,7 +640,7 @@
 AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실만 추출합니다.
             `.trim();
 
-            try {
+            try { // ✨ SyntaxError FIX: Try -> try
                 const text = await callGeminiApi(
                     chatHistory, 
                     systemPrompt,
@@ -872,6 +860,7 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             const worldview = document.getElementById('worldview-setting').value; 
             const memory = document.getElementById('memory').value;
 
+            // ✨ 프롬프트는 y의 요청대로 수정하지 않음
             let prompt = `
 [시스템 지침 시작]
 당신은 'AI 페르소나' 역할을 수행하는 AI입니다. 당신의 유일한 목표는 아래 설정에 완벽하게 몰입하여 사용자와 대화하는 것입니다.
@@ -1003,6 +992,7 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
 
 
 

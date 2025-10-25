@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     
     <!-- ✨ PWA & Mobile: 뷰포트 설정 (필수) -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover"> <!-- viewport-fit=cover 추가 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 
     <title>Gemini 페르소나 챗</title>
     
@@ -88,6 +88,7 @@
     <div id="app-container" class="flex flex-col md:flex-row w-full">
 
         <!-- 1. 설정 사이드바 -->
+         <!-- ✨ y 요청 FIX: 모바일 상단 비침 방지 위해 body에서 처리 -->
         <div id="sidebar" class="w-full md:w-1/3 lg:w-1/4 bg-gray-800 p-4 md:pt-4 overflow-y-auto 
             fixed inset-y-0 left-0 z-50 transform -translate-x-full md:relative md:translate-x-0 
             transition-transform duration-300 ease-in-out md:flex-shrink-0
@@ -176,12 +177,11 @@
 
         </div>
 
-        <!-- ✨ y 요청 FIX: 채팅 영역 레이아웃 수정 -->
-        <!-- flex-1 flex flex-col h-full 로 변경 (h-full 필수) -->
-        <div class="flex-1 flex flex-col h-full"> 
+        <!-- ✨ y 요청 FIX: 채팅 영역 레이아웃 수정 (고정 헤더/푸터) -->
+        <div class="flex-1 flex flex-col h-full overflow-hidden"> <!-- overflow-hidden 추가 -->
             
-            <!-- 상단 헤더: 고정 (flex-shrink-0) -->
-            <div id="chat-header" class="flex-shrink-0 bg-gray-800 p-4 border-b border-gray-700 shadow-md md:border-l flex justify-between items-center">
+            <!-- 상단 헤더: 고정 (flex-shrink-0) + 터치 토글 -->
+            <div id="chat-header" class="flex-shrink-0 bg-gray-800 p-4 border-b border-gray-700 shadow-md md:border-l flex justify-between items-center transition-opacity duration-300 ease-in-out z-10"> <!-- z-10 추가 -->
                 <h1 class="text-xl font-bold text-white">Gemini 페르소나 챗</h1>
                 
                 <div class="flex items-center space-x-2">
@@ -260,7 +260,7 @@
 
     <!-- 
         ============================================================
-        자바스크립트 코드
+        자바스크립트 코드 (최종 수정본)
         ============================================================
     -->
     <script type="module">
@@ -270,46 +270,35 @@
         const chatInput = document.getElementById('chat-input');
         const sendButton = document.getElementById('send-button');
         const loadingIndicator = document.getElementById('loading');
-        
-        // ✨ y 요청: 페르소나 저장을 위해 DOM 목록으로 가져오기
-        const personaInputs = document.querySelectorAll('.persona-setting'); // 4개 텍스트 영역
-        
+        const personaInputs = document.querySelectorAll('.persona-setting');
         const btnSuggestPersona = document.getElementById('btn-suggest-persona');
         const btnExtractMemory = document.getElementById('btn-extract-memory');
         const btnClearChat = document.getElementById('btn-clear-chat'); 
-        
         const sidebar = document.getElementById('sidebar');
         const btnOpenSidebar = document.getElementById('btn-open-sidebar');
         const btnCloseSidebar = document.getElementById('btn-close-sidebar');
         const sidebarBackdrop = document.getElementById('sidebar-backdrop');
-        
         const apiKeyInput = document.getElementById('api-key-input');
         const btnSaveKey = document.getElementById('btn-save-key');
         const btnShowKey = document.getElementById('btn-show-key');
         const apiKeyAlert = document.getElementById('api-key-alert');
         const API_KEY_STORAGE_ID = 'gemini-api-key';
-
         const btnDownload = document.getElementById('btn-download');
         const btnRegenerate = document.getElementById('btn-regenerate');
         const CHAT_HISTORY_STORAGE_ID = 'gemini-chat-history'; 
-        
-        // ✨ y 요청: 페르소나 저장용 키
         const PERSONA_SETTINGS_STORAGE_ID = 'gemini-persona-settings';
-        // ✨ y 요청: 모바일 헤더 토글 기능 삭제
-        // const chatHeader = document.getElementById('chat-header');
+        const chatHeader = document.getElementById('chat-header'); // 헤더 토글용
         
         // Gemini API 설정
         let userApiKey = ""; 
-        const modelName = "gemini-2.5-flash"; // ✨ 404/400 버그 없는 최종 안정화 모델
+        const modelName = "gemini-2.5-flash"; // 최종 안정화 모델
         let chatHistory = [];
 
         // 2. 이벤트 리스너
-        
-        // ✨ 앱 로드 시 키, 채팅, 페르소나 모두 불러오기
         document.addEventListener('DOMContentLoaded', () => {
             loadApiKey();
             loadChatHistory();
-            loadPersonaSettings(); // ✨ y 요청
+            loadPersonaSettings(); 
         });
         
         chatForm.addEventListener('submit', handleSendChat);
@@ -330,21 +319,28 @@
         btnSuggestPersona.addEventListener('click', handleSuggestPersona);
         btnExtractMemory.addEventListener('click', handleExtractMemory);
         btnClearChat.addEventListener('click', handleClearChat); 
-        
         btnDownload.addEventListener('click', handleDownload);
         btnRegenerate.addEventListener('click', handleRegenerate);
 
-        // ✨ y 요청: 페르소나 텍스트 영역에 'input' 이벤트 발생 시 자동 저장
         personaInputs.forEach(input => {
             input.addEventListener('input', savePersonaSettings);
         });
 
-        // ✨ y 요청: 모바일 헤더 토글 기능 삭제 (고정 레이아웃으로 변경)
-        /*
+        // ✨ y 요청 FIX: 모바일 헤더 토글 기능 복원 (채팅 영역 아무데나 터치)
         chatDisplay.addEventListener('click', function(e) {
-            // ... (기존 토글 코드 삭제) ...
+            // 삭제 버튼 클릭 시에는 헤더 토글 안 함
+            if (e.target.closest('.btn-delete')) {
+                handleDeleteMessage(e.target.closest('.btn-delete'));
+                return; 
+            }
+            
+            // 모바일 화면에서만 작동 (768px 미만)
+            if (window.innerWidth < 768) {
+                // opacity-0 클래스를 토글 (Tailwind 클래스)
+                chatHeader.classList.toggle('opacity-0');
+                chatHeader.classList.toggle('pointer-events-none'); // 숨겨졌을 때 클릭 방지
+            }
         });
-        */
 
         btnOpenSidebar.addEventListener('click', () => {
             sidebar.classList.remove('-translate-x-full');
@@ -358,15 +354,6 @@
             btnCloseSidebar.click();
         });
         
-        // 삭제 버튼 이벤트 리스너 (기존과 동일)
-         chatDisplay.addEventListener('click', function(e) {
-            const deleteButton = e.target.closest('.btn-delete');
-            if (deleteButton) {
-                handleDeleteMessage(deleteButton);
-            }
-         });
-        
-        // 삭제 버튼 클릭 로직
         function handleDeleteMessage(deleteButton) {
             const bubble = deleteButton.closest('[data-id]');
             if (bubble) {
@@ -427,12 +414,15 @@
             const savedHistory = localStorage.getItem(CHAT_HISTORY_STORAGE_ID);
             if (savedHistory) {
                 chatHistory = JSON.parse(savedHistory);
+                // 기존 메시지 삭제 (중복 방지)
+                const messagesToRemove = chatDisplay.querySelectorAll('div[data-id]');
+                messagesToRemove.forEach(msg => msg.remove());
+                
                 chatHistory.forEach(msg => {
                     if (msg.parts && msg.parts[0] && msg.parts[0].text) {
                          displayMessage(msg.parts[0].text, msg.role, msg.id);
                     }
                 });
-                 // ✨ 로드 후 마지막 메시지로 스크롤
                  chatDisplay.scrollTop = chatDisplay.scrollHeight;
             }
         }
@@ -445,9 +435,6 @@
             }
         }
 
-        /**
-         * ✨ NEW: y 요청 - 페르소나 설정 저장
-         */
         function savePersonaSettings() {
             const settings = {
                 charPersona: document.getElementById('char-persona').value,
@@ -458,9 +445,6 @@
             localStorage.setItem(PERSONA_SETTINGS_STORAGE_ID, JSON.stringify(settings));
         }
 
-        /**
-         * ✨ NEW: y 요청 - 페르소나 설정 로드
-         */
         function loadPersonaSettings() {
             const savedSettings = localStorage.getItem(PERSONA_SETTINGS_STORAGE_ID);
             if (savedSettings) {
@@ -522,7 +506,6 @@
             loadingIndicator.classList.remove('hidden');
 
             try {
-                // ✨ buildSystemPrompt는 이제 페르소나 저장소에서 값을 읽어옴
                 const systemPrompt = buildSystemPrompt();
                 const text = await callGeminiApi(chatHistory, systemPrompt, userApiKey);
 
@@ -569,8 +552,6 @@
             chatHistory = [];
             localStorage.removeItem(CHAT_HISTORY_STORAGE_ID); 
             
-            // ✨ y 요청: 페르소나 설정은 삭제하면 안 됨.
-            
             const messages = chatDisplay.querySelectorAll('div[data-id], div.bg-red-700, #api-key-alert'); 
             messages.forEach(msg => msg.remove());
             chatDisplay.scrollTop = 0;
@@ -579,12 +560,12 @@
                 apiKeyAlert.classList.remove('hidden'); 
                 chatDisplay.appendChild(apiKeyAlert);
             }
-             // 환영 메시지 다시 추가 (삭제 후에도 보이도록)
+            // 환영 메시지 다시 추가
             const welcomeMsg = document.createElement('div');
             welcomeMsg.id = 'welcome-message';
             welcomeMsg.classList.add('p-3', 'rounded-lg', 'bg-gray-700', 'self-start', 'max-w-xs', 'md:max-w-md');
             welcomeMsg.innerHTML = `<span class="font-bold block text-blue-300">AI</span><p class="text-white">안녕하세요! 왼쪽 탭에서 페르소나를 설정한 후 저에게 말을 걸어주세요. (모바일에선 햄버거 버튼 ☰)</p>`;
-            chatDisplay.prepend(welcomeMsg); // 맨 위에 추가
+            chatDisplay.prepend(welcomeMsg); 
         }
 
 
@@ -691,7 +672,6 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 return;
             }
 
-            // ✨ y 요청 FIX: buildSystemPrompt 대신 현재 입력된 값 가져오기
             const charPersona = document.getElementById('char-persona').value;
             const userPersona = document.getElementById('user-persona').value;
             const worldview = document.getElementById('worldview-setting').value;
@@ -784,10 +764,8 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 throw new Error("API key is missing.");
             }
 
-            // ✨ URL 오타 수정: labels -> language (최종 수정)
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-            // ✨ y 요청: 검열 안 함 (BLOCK_NONE)
             const safetyThreshold = "BLOCK_NONE";
             const safetySettings = [
                 { category: "HARM_CATEGORY_HARASSMENT", threshold: safetyThreshold },
@@ -796,14 +774,11 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: safetyThreshold },
             ];
 
-            // ✨ 400 ERROR FIX (JSON): `contents` 배열에서 UI용 'id' 필드 제거
             const apiSafeContents = contents.map(msg => ({
                 role: msg.role,
                 parts: msg.parts
             }));
 
-
-            // ✨ 400 ERROR FIX (Flash 호환): `systemInstruction`을 `contents` 배열에 "끼워넣기"
             if (systemInstructionText) {
                 apiSafeContents.unshift(
                     { role: "user", parts: [{ text: systemInstructionText }] },
@@ -812,8 +787,8 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             }
 
             const payload = {
-                contents: apiSafeContents, // ✨ 'id'가 제거된 깨끗한 배열
-                safetySettings: safetySettings // ✨ y 요청: 검열 완화 설정 다시 추가
+                contents: apiSafeContents, 
+                safetySettings: safetySettings 
             };
 
             const response = await fetchWithRetry(apiUrl, {
@@ -829,7 +804,6 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 if (response.status === 400) {
                      throw new Error(`Server error: 400 (Bad Request). API 키는 맞지만 요청 내용(JSON 형식 등)을 서버가 거부했습니다.`);
                 }
-                 // ✨ 404 (Not Found) 에러도 잡기
                 if (response.status === 404) {
                      throw new Error(`Server error: 404 (Not Found). API 주소나 모델 이름을 찾을 수 없습니다.`);
                 }
@@ -858,7 +832,6 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                         return ""; 
                     }
                 } else {
-                    // BLOCK_NONE일 때, AI 응답이 'SAFETY'로 막힌 경우
                     if (safetyThreshold === "BLOCK_NONE" && candidate.finishReason === "SAFETY") {
                         return "(시스템: AI의 응답이 안전 설정에 의해 차단되었습니다.)";
                     }
@@ -878,13 +851,11 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
          * 7. 시스템 프롬프트 생성 (y 요청: 수정 안 함)
          */
         function buildSystemPrompt() {
-            // ✨ y 요청: 저장된 페르소나 값을 DOM에서 직접 읽어옴
             const charPersona = document.getElementById('char-persona').value;
             const userPersona = document.getElementById('user-persona').value;
             const worldview = document.getElementById('worldview-setting').value; 
             const memory = document.getElementById('memory').value;
 
-            // ✨ 프롬프트는 y의 요청대로 수정하지 않음
             let prompt = `
 [시스템 지침 시작]
 당신은 'AI 페르소나' 역할을 수행하는 AI입니다. 당신의 유일한 목표는 아래 설정에 완벽하게 몰입하여 사용자와 대화하는 것입니다.
@@ -1016,45 +987,3 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

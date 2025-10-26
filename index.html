@@ -550,20 +550,24 @@
 
             try {
                 const systemPrompt = buildSystemPrompt();
-                const text = await callGeminiApi(chatHistory, systemPrompt, userApiKey);
+              const CONVERSATION_WINDOW_SIZE = 10;
+        const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
 
-                const modelMessageId = Date.now() + '-model';
-                displayMessage(text, 'model', modelMessageId);
-                
-                chatHistory.push({
-                    id: modelMessageId,
-                    role: "model",
-                    parts: [{ text: text }]
-                });
-                saveChatHistory(); 
+        // 기존: chatHistory -> 수정: recentHistory
+        const text = await callGeminiApi(recentHistory, systemPrompt, userApiKey);
 
-            } catch (error) {
-                console.error("Error in handleSendChat:", error);
+        const modelMessageId = Date.now() + '-model';
+        displayMessage(text, 'model', modelMessageId);
+
+        chatHistory.push({
+            id: modelMessageId,
+            role: "model",
+            parts: [{ text: text }]
+        });
+        saveChatHistory();
+
+    } catch (error) {
+        console.error("Error in handleSendChat:", error);
                 
                 if (error.message && (error.message.includes('401') || error.message.includes('403') || error.message.includes('API key not valid'))) {
                      displayMessage(`API 키 인증 오류가 발생했습니다. 키가 올바른지 확인하거나, 키 설정이 Google AI Studio에서 올바르게 되었는지 확인하세요.`, 'error');
@@ -766,59 +770,65 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
         /**
          * 마지막 AI 답변 재생성
          */
-        async function handleRegenerate() {
-            if (!loadingIndicator.classList.contains('hidden')) {
-                return; 
-            }
-            
-            if (!userApiKey) {
-                 displayMessage("API 키가 없습니다. '🔄 재생성' 기능을 사용하려면 먼저 키를 저장하세요.", 'error');
-                 if (window.innerWidth < 768) btnOpenSidebar.click();
-                 return;
-            }
+      async function handleRegenerate() {
+    if (!loadingIndicator.classList.contains('hidden')) {
+        return;
+    }
 
-            if (chatHistory.length < 1) {
-                 displayMessage('재생성할 AI 답변이 없습니다.', 'error');
-                return;
-            }
+    if (!userApiKey) {
+         displayMessage("API 키가 없습니다. '🔄 재생성' 기능을 사용하려면 먼저 키를 저장하세요.", 'error');
+         if (window.innerWidth < 768) btnOpenSidebar.click();
+         return;
+    }
 
-            const lastMsg = chatHistory[chatHistory.length - 1];
-            if (lastMsg.role !== 'model') {
-                displayMessage('마지막 메시지가 AI의 답변일 때만 재생성할 수 있습니다.', 'error');
-                return;
-            }
+    if (chatHistory.length < 1) {
+         displayMessage('재생성할 AI 답변이 없습니다.', 'error');
+        return;
+    }
 
-            // 1. 마지막 AI 답변을 chatHistory에서 제거
-            chatHistory.pop();
-            saveChatHistory(); 
+    const lastMsg = chatHistory[chatHistory.length - 1];
+    if (lastMsg.role !== 'model') {
+        displayMessage('마지막 메시지가 AI의 답변일 때만 재생성할 수 있습니다.', 'error');
+        return;
+    }
 
-            // 2. 마지막 AI 답변을 UI에서 제거
-            const bubbles = chatDisplay.querySelectorAll('div[data-id]');
-            bubbles[bubbles.length - 1].remove();
+    // 1. 마지막 AI 답변을 chatHistory에서 제거
+    chatHistory.pop();
+    saveChatHistory();
 
-            // 3. API 재호출
-            loadingIndicator.classList.remove('hidden');
-            try {
-                const systemPrompt = buildSystemPrompt();
-                const text = await callGeminiApi(chatHistory, systemPrompt, userApiKey);
+    // 2. 마지막 AI 답변을 UI에서 제거
+    const bubbles = chatDisplay.querySelectorAll('div[data-id]');
+    bubbles[bubbles.length - 1].remove();
 
-                const modelMessageId = Date.now() + '-model';
-                displayMessage(text, 'model', modelMessageId);
-                
-                chatHistory.push({
-                    id: modelMessageId,
-                    role: "model",
-                    parts: [{ text: text }]
-                });
-                saveChatHistory(); 
+    // 3. API 재호출
+    loadingIndicator.classList.remove('hidden');
+    try {
+        const systemPrompt = buildSystemPrompt();
 
-            } catch (error) {
-                console.error("Error in handleRegenerate:", error);
-                displayMessage(`재생성 중 오류 발생: ${error.message}`, 'error');
-            } finally {
-                loadingIndicator.classList.add('hidden');
-            }
-        }
+        // ✨✨✨ 여기도 똑같이 추가! ✨✨✨
+        const CONVERSATION_WINDOW_SIZE = 10;
+        const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
+
+        // 기존: chatHistory -> 수정: recentHistory
+        const text = await callGeminiApi(recentHistory, systemPrompt, userApiKey);
+
+        const modelMessageId = Date.now() + '-model';
+        displayMessage(text, 'model', modelMessageId);
+        
+        chatHistory.push({
+            id: modelMessageId,
+            role: "model",
+            parts: [{ text: text }]
+        });
+        saveChatHistory();
+
+    } catch (error) {
+        console.error("Error in handleRegenerate:", error);
+        displayMessage(`재생성 중 오류 발생: ${error.message}`, 'error');
+    } finally {
+        loadingIndicator.classList.add('hidden');
+    }
+}
 
 
         /**
@@ -1044,6 +1054,7 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
 
 
 

@@ -343,21 +343,24 @@
         btnExtractMemory.addEventListener('click', handleExtractMemory);
         btnDownload.addEventListener('click', handleDownload);
         btnRegenerate.addEventListener('click', handleRegenerate);
-        btnClearChat.addEventListener('click', showClearConfirmModal); 
-        btnModalCancel.addEventListener('click', hideClearConfirmModal);
-    // ✨✨✨ 수정된 부분 ✨✨✨
-    btnModalConfirmDelete.addEventListener('click', () => {
-        const idToDelete = confirmModal.dataset.idToDelete; // 저장된 채팅 삭제 ID 확인
+        btnClearChat.addEventListener('click', showClearCurrentChatConfirmModal); 
 
-        if (idToDelete) {
-            // '저장된 채팅'을 삭제하는 경우
-            deleteChatSaveById(idToDelete);
-        } else {
-            // '현재 채팅'을 삭제하는 경우 (기존 기능)
-            executeClearChat();
-        }
-        hideClearConfirmModal(); // 모달 닫기
-    });
+// 삭제 모달 '취소' 버튼
+btnModalCancel.addEventListener('click', hideClearConfirmModal);
+
+// 삭제 모달 '삭제' 버튼 (두 가지 경우 모두 처리)
+btnModalConfirmDelete.addEventListener('click', () => {
+    const idToDelete = confirmModal.dataset.idToDelete; // 저장된 채팅 삭제 ID 확인
+
+    if (idToDelete) {
+        // '저장된 채팅'을 삭제하는 경우
+        deleteChatSaveById(idToDelete);
+    } else {
+        // '현재 채팅'을 삭제하는 경우 (기존 기능)
+        executeClearChat();
+    }
+    hideClearConfirmModal(); // 모달 닫기 (공통)
+});
         btnOpenSidebar.addEventListener('click', () => {
             sidebar.classList.remove('-translate-x-full');
             sidebarBackdrop.classList.remove('hidden');
@@ -596,17 +599,41 @@
         // 5. 기능 함수 (삭제, 추천, 추출, 다운로드, 재생성)
         // (이 섹션의 모든 함수는 이전과 동일)
         function showClearConfirmModal() {
-            if (chatHistory.length === 0) {
-                 displayMessage('삭제할 대화 내용이 없습니다.', 'error');
-                return;
-            }
-            confirmModalBackdrop.classList.remove('hidden');
-            confirmModal.classList.remove('hidden');
-        }
-        function hideClearConfirmModal() {
-            confirmModalBackdrop.classList.add('hidden');
-            confirmModal.classList.add('hidden');
-        }
+        function showClearCurrentChatConfirmModal() {
+    if (chatHistory.length === 0) {
+        displayMessage('삭제할 대화 내용이 없습니다.', 'error');
+        return;
+    }
+    // 모달 내용 초기화 (현재 채팅 삭제용)
+    const modalTitle = confirmModal.querySelector('h3');
+    const modalText = confirmModal.querySelector('p');
+    modalTitle.textContent = '정말 삭제하시겠습니까?';
+    modalText.textContent = '현재 채팅 내용이 영구적으로 삭제되며, 복구할 수 없습니다.';
+
+    delete confirmModal.dataset.idToDelete; 
+
+    confirmModalBackdrop.classList.remove('hidden');
+    confirmModal.classList.remove('hidden');
+}
+
+/** '저장된 채팅' 삭제 확인 모달 띄우기 */
+function showDeleteSavedChatConfirmModal(id, title) {
+    const modalTitle = confirmModal.querySelector('h3');
+    const modalText = confirmModal.querySelector('p');
+    modalTitle.textContent = '정말 삭제하시겠습니까?';
+    modalText.innerHTML = `'<span class="font-bold text-white">${title}</span>' 채팅이 영구적으로 삭제되며,<br>복구할 수 없습니다.`;
+    confirmModal.dataset.idToDelete = id; // 삭제할 ID 저장
+
+    confirmModalBackdrop.classList.remove('hidden');
+    confirmModal.classList.remove('hidden');
+}
+
+/** 모달 닫기 (공통 뒷정리 포함) */
+function hideClearConfirmModal() {
+    confirmModalBackdrop.classList.add('hidden');
+    confirmModal.classList.add('hidden');
+    delete confirmModal.dataset.idToDelete; // ID 정보 삭제
+}
         function executeClearChat() {
             chatHistory = [];
             saveChatHistory(); 
@@ -1194,6 +1221,7 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
 
 
 

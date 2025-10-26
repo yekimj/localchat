@@ -501,24 +501,10 @@
             if (savedHistory) {
                 chatHistory = JSON.parse(savedHistory);
                 chatHistory.forEach(msg => {
-     if (msg.parts && msg.parts[0] && msg.parts[0].text) {
-         // 윈도우 메모장 줄바꿈(\r\n)으로 통일
-         const text = msg.parts[0].text.replace(/\n/g, '\r\n');
-         
-         // 역할(role)에 따라 태그 추가
-         if (msg.role === 'user') {
-            downloadContent += "{{user}}\r\n";
-         } else if (msg.role === 'model') {
-            downloadContent += "{{ai}}\r\n";
-         }
-         
-         // 채팅 내용 추가
-         downloadContent += text + "\r\n";
-         
-         // y가 요청한 한 칸 띄우기 (줄바꿈)
-         downloadContent += "\r\n"; 
-     }
-});
+                    if (msg.parts && msg.parts[0] && msg.parts[0].text) {
+                         displayMessage(msg.parts[0].text, msg.role, msg.id);
+                    }
+                });
             }
         }
 
@@ -760,7 +746,7 @@
         /**
          * 채팅 기록 다운로드 (.txt)
          */
-        function handleDownload() {
+                function handleDownload() {
             if (chatHistory.length === 0 && 
                 !charPersonaInput.value && 
                 !userPersonaInput.value && 
@@ -772,6 +758,7 @@
 
             let downloadContent = "";
 
+            // --- 이 부분은 페르소나 설정이라 그대로 둠 ---
             downloadContent += "[캐릭터의 페르소나]\r\n";
             downloadContent += "--------------------\r\n";
             downloadContent += (charPersonaInput.value.trim() || "(설정 없음)") + "\r\n";
@@ -791,15 +778,31 @@
             downloadContent += "--------------------\r\n";
             downloadContent += (memoryInput.value.trim() || "(설정 없음)") + "\r\n";
             downloadContent += "--------------------\r\n\r\n";
+            // --- 여기까지 그대로 ---
+
 
             if (chatHistory.length > 0) {
                 downloadContent += "[채팅 기록]\r\n";
                 downloadContent += "--------------------\r\n";
                 
+                // ✨✨✨ y 요청한 {{ai}}, {{user}} 태그 적용 ✨✨✨
                 chatHistory.forEach(msg => {
                      if (msg.parts && msg.parts[0] && msg.parts[0].text) {
+                         // 윈도우 메모장 줄바꿈(\r\n)으로 통일
                          const text = msg.parts[0].text.replace(/\n/g, '\r\n');
+                         
+                         // 역할(role)에 따라 태그 추가
+                         if (msg.role === 'user') {
+                            downloadContent += "{{user}}\r\n";
+                         } else if (msg.role === 'model') {
+                            downloadContent += "{{ai}}\r\n";
+                         }
+                         
+                         // 채팅 내용 추가
                          downloadContent += text + "\r\n";
+                         
+                         // y가 요청한 한 칸 띄우기 (줄바꿈)
+                         downloadContent += "\r\n"; 
                      }
                 });
             }
@@ -1122,6 +1125,9 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
+
+
 
 
 

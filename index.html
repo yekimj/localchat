@@ -867,9 +867,14 @@
                 }
             }
             if (deleteBtn) {
-                const id = deleteBtn.dataset.id;
-                deleteChatSaveById(id);
-            }
+    const id = deleteBtn.dataset.id;
+    // 삭제 함수를 바로 호출하는 대신, 확인 모달을 띄우도록 변경
+    const savedChats = JSON.parse(localStorage.getItem(SAVED_CHATS_STORAGE_ID)) || [];
+    const chatToDelete = savedChats.find(chat => String(chat.id) === String(id));
+    if (chatToDelete) {
+        showDeleteSavedChatConfirmModal(id, chatToDelete.title);
+    }
+}
         }
         function loadChatById(id) {
             const savedChats = JSON.parse(localStorage.getItem(SAVED_CHATS_STORAGE_ID)) || [];
@@ -1180,6 +1185,7 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
 
 
 

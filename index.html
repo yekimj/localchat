@@ -273,6 +273,33 @@
     </div>
 
     <!-- 
+      ✨✨✨ NEW (y 요청): 삭제 확인 커스텀 모달
+      window.confirm() 대신 사용할 커스텀 모달입니다.
+    -->
+    <div id="confirm-modal-backdrop" class="fixed inset-0 bg-black/70 z-[100] hidden"></div>
+    <div id="confirm-modal" 
+         class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 
+                bg-gray-800 rounded-lg shadow-xl z-[101] 
+                w-11/12 max-w-md p-6 hidden
+                border border-gray-700">
+        
+        <h3 class="text-lg font-bold text-white mb-4">정말 삭제하시겠습니까?</h3>
+        <p class="text-gray-300 mb-6">전체 대화 내용이 영구적으로 삭제되며, 복구할 수 없습니다.</p>
+        
+        <div class="flex justify-end space-x-3">
+            <button id="btn-modal-cancel" type="button" 
+                    class="px-5 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-medium transition-all active:scale-95">
+                취소
+            </button>
+            <button id="btn-modal-confirm-delete" type="button" 
+                    class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all active:scale-95">
+                삭제
+            </button>
+        </div>
+    </div>
+
+
+    <!-- 
         ============================================================
         자바스크립트 코드 (모든 수정사항 + 버그 수정 포함)
         ============================================================
@@ -292,7 +319,6 @@
         const btnSuggestPersona = document.getElementById('btn-suggest-persona');
         const btnExtractMemory = document.getElementById('btn-extract-memory');
         
-        // ✨ NEW: 모델 선택 DOM
         const modelSelect = document.getElementById('model-select');
         
         const sidebar = document.getElementById('sidebar');
@@ -311,27 +337,30 @@
         const btnClearChat = document.getElementById('btn-clear-chat'); 
         const CHAT_HISTORY_STORAGE_ID = 'gemini-chat-history';
 
-        // ✨ MODIFIED (y 요청 2): 페르소나/설정 저장을 위한 키
+        // ✨ NEW (y 요청): 삭제 확인 모달 DOM 요소
+        const confirmModalBackdrop = document.getElementById('confirm-modal-backdrop');
+        const confirmModal = document.getElementById('confirm-modal');
+        const btnModalCancel = document.getElementById('btn-modal-cancel');
+        const btnModalConfirmDelete = document.getElementById('btn-modal-confirm-delete');
+
         const SETTINGS_STORAGE_KEYS = {
             charPersona: 'gemini-settings-char-persona',
             userPersona: 'gemini-settings-user-persona',
             worldview: 'gemini-settings-worldview',
             memory: 'gemini-settings-memory',
-            model: 'gemini-settings-model' // ✨ NEW
+            model: 'gemini-settings-model'
         };
 
-        // Gemini API 설정
         let userApiKey = ""; 
-        let modelName = "gemini-2.5-flash"; // ✨ MODIFIED: const -> let
+        let modelName = "gemini-2.5-flash"; 
         let chatHistory = [];
 
         // 2. 이벤트 리스너
         
-        // ✨ MODIFIED (y 요청 2): 앱 로드 시 키, 채팅 기록, *설정* 모두 불러오기
         document.addEventListener('DOMContentLoaded', () => {
             loadApiKey();
             loadChatHistory();
-            loadSettings(); // ✨ NEW
+            loadSettings(); 
         });
         
         chatForm.addEventListener('submit', handleSendChat);
@@ -352,10 +381,18 @@
         btnSuggestPersona.addEventListener('click', handleSuggestPersona);
         btnExtractMemory.addEventListener('click', handleExtractMemory);
         
-        // ✨ MODIFIED (y 요청): 버튼들에 "type=button"을 추가했으므로, 폼 제출 방지됨.
-        btnClearChat.addEventListener('click', handleClearChat); 
         btnDownload.addEventListener('click', handleDownload);
         btnRegenerate.addEventListener('click', handleRegenerate);
+
+        // ✨ MODIFIED (y 요청): 삭제 버튼은 이제 모달을 띄웁니다.
+        btnClearChat.addEventListener('click', showClearConfirmModal); 
+        
+        // ✨ NEW (y 요청): 모달 버튼 이벤트 리스너
+        btnModalCancel.addEventListener('click', hideClearConfirmModal);
+        btnModalConfirmDelete.addEventListener('click', () => {
+            executeClearChat(); // 실제 삭제 함수 호출
+            hideClearConfirmModal(); // 모달 닫기
+        });
 
         btnOpenSidebar.addEventListener('click', () => {
             sidebar.classList.remove('-translate-x-full');
@@ -394,12 +431,11 @@
             }
         });
 
-        // ✨ NEW (y 요청 2): 페르소나/설정 저장을 위한 이벤트 리스너
         charPersonaInput.addEventListener('change', saveSettings);
         userPersonaInput.addEventListener('change', saveSettings);
         worldviewInput.addEventListener('change', saveSettings);
         memoryInput.addEventListener('change', saveSettings);
-        modelSelect.addEventListener('change', saveSettings); // ✨ NEW
+        modelSelect.addEventListener('change', saveSettings); 
 
 
         // 3. API 키 및 채팅 저장/로드 함수 (localStorage)
@@ -435,47 +471,31 @@
             }
         }
 
-        // ---
-        // ✨ NEW (y 요청 2): 설정 저장/로드 함수 추가
-        // ---
-
-        /**
-         * ✨ NEW: y 요청 - 새로고침 시 페르소나/세계관/기억/모델 로드
-         */
         function loadSettings() {
             charPersonaInput.value = localStorage.getItem(SETTINGS_STORAGE_KEYS.charPersona) || '';
             userPersonaInput.value = localStorage.getItem(SETTINGS_STORAGE_KEYS.userPersona) || '';
             worldviewInput.value = localStorage.getItem(SETTINGS_STORAGE_KEYS.worldview) || '';
             memoryInput.value = localStorage.getItem(SETTINGS_STORAGE_KEYS.memory) || '';
             
-            // ✨ NEW: 모델 로드
             const savedModel = localStorage.getItem(SETTINGS_STORAGE_KEYS.model);
             if (savedModel) {
                 modelName = savedModel;
                 modelSelect.value = savedModel;
             } else {
-                modelName = modelSelect.value; // HTML의 'selected' 값을 기본값으로 사용
+                modelName = modelSelect.value; 
             }
         }
 
-        /**
-         * ✨ NEW: y 요청 - 페르소나/세계관/기억/모델 변경 시 localStorage에 저장
-         */
         function saveSettings() {
             localStorage.setItem(SETTINGS_STORAGE_KEYS.charPersona, charPersonaInput.value);
             localStorage.setItem(SETTINGS_STORAGE_KEYS.userPersona, userPersonaInput.value);
             localStorage.setItem(SETTINGS_STORAGE_KEYS.worldview, worldviewInput.value);
             localStorage.setItem(SETTINGS_STORAGE_KEYS.memory, memoryInput.value);
             
-            // ✨ NEW: 모델 저장
             localStorage.setItem(SETTINGS_STORAGE_KEYS.model, modelSelect.value);
-            modelName = modelSelect.value; // 전역 변수 갱신
+            modelName = modelSelect.value; 
         }
 
-
-        /**
-         * 채팅 기록 로드
-         */
         function loadChatHistory() {
             const savedHistory = localStorage.getItem(CHAT_HISTORY_STORAGE_ID);
             if (savedHistory) {
@@ -488,9 +508,6 @@
             }
         }
 
-        /**
-         * 채팅 기록 저장
-         */
         function saveChatHistory() {
             if (chatHistory && chatHistory.length > 0) {
                 localStorage.setItem(CHAT_HISTORY_STORAGE_ID, JSON.stringify(chatHistory));
@@ -550,24 +567,25 @@
 
             try {
                 const systemPrompt = buildSystemPrompt();
-              const CONVERSATION_WINDOW_SIZE = 10;
-        const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
 
-        // 기존: chatHistory -> 수정: recentHistory
-        const text = await callGeminiApi(recentHistory, systemPrompt, userApiKey);
+                // ✨ MODIFIED (이전 요청): API 비용 절감을 위해 최근 10개 대화만 전송
+                const CONVERSATION_WINDOW_SIZE = 10;
+                const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
 
-        const modelMessageId = Date.now() + '-model';
-        displayMessage(text, 'model', modelMessageId);
+                const text = await callGeminiApi(recentHistory, systemPrompt, userApiKey);
 
-        chatHistory.push({
-            id: modelMessageId,
-            role: "model",
-            parts: [{ text: text }]
-        });
-        saveChatHistory();
+                const modelMessageId = Date.now() + '-model';
+                displayMessage(text, 'model', modelMessageId);
+                
+                chatHistory.push({
+                    id: modelMessageId,
+                    role: "model",
+                    parts: [{ text: text }]
+                });
+                saveChatHistory(); 
 
-    } catch (error) {
-        console.error("Error in handleSendChat:", error);
+            } catch (error) {
+                console.error("Error in handleSendChat:", error);
                 
                 if (error.message && (error.message.includes('401') || error.message.includes('403') || error.message.includes('API key not valid'))) {
                      displayMessage(`API 키 인증 오류가 발생했습니다. 키가 올바른지 확인하거나, 키 설정이 Google AI Studio에서 올바르게 되었는지 확인하세요.`, 'error');
@@ -589,10 +607,37 @@
             }
         }
 
+        // ---
+        // ✨✨✨ 5. y 요청 신규/수정 기능 (삭제 확인 모달, 다운로드, 재생성)
+        // ---
+
         /**
-         * 채팅 기록 삭제 핸들러 (저장소 포함)
+         * ✨ NEW (y 요청): 삭제 확인 모달 보여주기
          */
-        function handleClearChat() {
+        function showClearConfirmModal() {
+            if (chatHistory.length === 0) {
+                 displayMessage('삭제할 대화 내용이 없습니다.', 'error');
+                return;
+            }
+            confirmModalBackdrop.classList.remove('hidden');
+            confirmModal.classList.remove('hidden');
+        }
+
+        /**
+         * ✨ NEW (y 요청): 삭제 확인 모달 숨기기
+         */
+        function hideClearConfirmModal() {
+            confirmModalBackdrop.classList.add('hidden');
+            confirmModal.classList.add('hidden');
+        }
+
+        /**
+         * ✨ MODIFIED (y 요청):
+         * 채팅 기록 삭제 핸들러 (저장소 포함)
+         * -> 'handleClearChat'에서 'executeClearChat'으로 이름 변경
+         * 이제 이 함수는 모달의 '삭제' 버튼에 의해서만 호출됩니다.
+         */
+        function executeClearChat() {
             chatHistory = [];
             localStorage.removeItem(CHAT_HISTORY_STORAGE_ID); 
             
@@ -605,7 +650,6 @@
                 chatDisplay.appendChild(apiKeyAlert);
             }
         }
-
 
         /**
          * 페르소나 추천
@@ -624,6 +668,7 @@
             const prompt = "당신은 창의적인 작가입니다. AI 채팅 앱에서 사용할 수 있는 독특하고 재미있는 '캐릭터 페르소나' 아이디어 3가지를 추천해 주세요. 각 아이디어는 2~3줄로 설명하고, '---'로 구분해 주세요.";
             
             try {
+                // 페르소나 추천은 대화 기록이 필요 없으므로 빈 배열 전달
                 const text = await callGeminiApi(
                     [{ role: "user", parts: [{ text: prompt }] }],
                     null, 
@@ -634,7 +679,7 @@
                      displayMessage('✨ 추천할 아이디어가 떠오르지 않습니다. 다시 시도해 주세요.', 'error');
                 } else {
                     charPersonaInput.value = text;
-                    saveSettings(); // ✨ NEW: 추천받은 페르소나도 바로 저장
+                    saveSettings(); 
                     displayMessage('✨ AI가 새로운 페르소나 아이디어를 추천했습니다. 사이드바를 확인하세요!', 'model');
                 }
 
@@ -673,6 +718,8 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             `.trim();
 
             try {
+                // ✨ MODIFIED (이전 요청): 여기는 *전체* 대화 기록을 보내야 기억 추출이 잘 됨.
+                // 비용이 들지만, '기억 추출'은 매번 하는 게 아니므로 괜찮음.
                 const text = await callGeminiApi(
                     chatHistory, 
                     systemPrompt,
@@ -684,7 +731,7 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 } else {
                     const existingMemory = memoryInput.value.trim();
                     memoryInput.value = existingMemory + (existingMemory ? '\n' : '') + text;
-                    saveSettings(); // ✨ NEW: 추출된 기억도 바로 저장
+                    saveSettings(); 
                     displayMessage('✨ 대화에서 주요 정보를 추출하여 [장기 기억] 탭에 추가했습니다. 사이드바를 확인하세요!', 'model');
                 }
             } catch (error) {
@@ -696,17 +743,11 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             }
         }
 
-        // ---
-        // ✨ 5. y 요청 신규 기능 (다운로드, 재생성)
-        // ---
 
         /**
-         * ✨ MODIFIED (y 요청 1): 채팅 기록 다운로드 (.txt)
-         * - 시스템 프롬프트 대신 4개 설정값(페르소나, 세계관, 기억)을 포함.
-         * - 채팅 기록을 "나:", "AI:" 접두사 없는 줄글로 변경.
+         * 채팅 기록 다운로드 (.txt)
          */
         function handleDownload() {
-            // 4개 설정값과 채팅 기록 중 하나라도 내용이 있는지 확인
             if (chatHistory.length === 0 && 
                 !charPersonaInput.value && 
                 !userPersonaInput.value && 
@@ -718,7 +759,6 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
 
             let downloadContent = "";
 
-            // 1. y 요청: 4개 설정값 추가
             downloadContent += "[캐릭터의 페르소나]\r\n";
             downloadContent += "--------------------\r\n";
             downloadContent += (charPersonaInput.value.trim() || "(설정 없음)") + "\r\n";
@@ -739,28 +779,22 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             downloadContent += (memoryInput.value.trim() || "(설정 없음)") + "\r\n";
             downloadContent += "--------------------\r\n\r\n";
 
-            // 2. 채팅 기록 준비 (y가 줄글로 요청)
             if (chatHistory.length > 0) {
                 downloadContent += "[채팅 기록]\r\n";
                 downloadContent += "--------------------\r\n";
                 
                 chatHistory.forEach(msg => {
-                    // msg.parts[0].text가 없는 비정상 데이터 방어
                      if (msg.parts && msg.parts[0] && msg.parts[0].text) {
-                         // \n (줄바꿈)을 \r\n (윈도우/메모장 줄바꿈)으로 통일
                          const text = msg.parts[0].text.replace(/\n/g, '\r\n');
-                         // y 요청: "나:", "AI:" 접두사 제거
                          downloadContent += text + "\r\n";
                      }
                 });
             }
 
-
-            // 3. 파일 생성 및 다운로드
             const blob = new Blob([downloadContent], { type: 'text/plain;charset=utf-8' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = 'gemini_persona_chat.txt'; // 파일 이름 변경
+            a.download = 'gemini_persona_chat.txt'; 
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -770,65 +804,61 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
         /**
          * 마지막 AI 답변 재생성
          */
-      async function handleRegenerate() {
-    if (!loadingIndicator.classList.contains('hidden')) {
-        return;
-    }
+        async function handleRegenerate() {
+            if (!loadingIndicator.classList.contains('hidden')) {
+                return; 
+            }
+            
+            if (!userApiKey) {
+                 displayMessage("API 키가 없습니다. '🔄 재생성' 기능을 사용하려면 먼저 키를 저장하세요.", 'error');
+                 if (window.innerWidth < 768) btnOpenSidebar.click();
+                 return;
+            }
 
-    if (!userApiKey) {
-         displayMessage("API 키가 없습니다. '🔄 재생성' 기능을 사용하려면 먼저 키를 저장하세요.", 'error');
-         if (window.innerWidth < 768) btnOpenSidebar.click();
-         return;
-    }
+            if (chatHistory.length < 1) {
+                 displayMessage('재생성할 AI 답변이 없습니다.', 'error');
+                return;
+            }
 
-    if (chatHistory.length < 1) {
-         displayMessage('재생성할 AI 답변이 없습니다.', 'error');
-        return;
-    }
+            const lastMsg = chatHistory[chatHistory.length - 1];
+            if (lastMsg.role !== 'model') {
+                displayMessage('마지막 메시지가 AI의 답변일 때만 재생성할 수 있습니다.', 'error');
+                return;
+            }
 
-    const lastMsg = chatHistory[chatHistory.length - 1];
-    if (lastMsg.role !== 'model') {
-        displayMessage('마지막 메시지가 AI의 답변일 때만 재생성할 수 있습니다.', 'error');
-        return;
-    }
+            chatHistory.pop();
+            saveChatHistory(); 
 
-    // 1. 마지막 AI 답변을 chatHistory에서 제거
-    chatHistory.pop();
-    saveChatHistory();
+            const bubbles = chatDisplay.querySelectorAll('div[data-id]');
+            bubbles[bubbles.length - 1].remove();
 
-    // 2. 마지막 AI 답변을 UI에서 제거
-    const bubbles = chatDisplay.querySelectorAll('div[data-id]');
-    bubbles[bubbles.length - 1].remove();
+            loadingIndicator.classList.remove('hidden');
+            try {
+                const systemPrompt = buildSystemPrompt();
 
-    // 3. API 재호출
-    loadingIndicator.classList.remove('hidden');
-    try {
-        const systemPrompt = buildSystemPrompt();
+                // ✨ MODIFIED (이전 요청): API 비용 절감을 위해 최근 10개 대화만 전송
+                const CONVERSATION_WINDOW_SIZE = 10;
+                const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
 
-        // ✨✨✨ 여기도 똑같이 추가! ✨✨✨
-        const CONVERSATION_WINDOW_SIZE = 10;
-        const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
+                const text = await callGeminiApi(recentHistory, systemPrompt, userApiKey);
 
-        // 기존: chatHistory -> 수정: recentHistory
-        const text = await callGeminiApi(recentHistory, systemPrompt, userApiKey);
+                const modelMessageId = Date.now() + '-model';
+                displayMessage(text, 'model', modelMessageId);
+                
+                chatHistory.push({
+                    id: modelMessageId,
+                    role: "model",
+                    parts: [{ text: text }]
+                });
+                saveChatHistory(); 
 
-        const modelMessageId = Date.now() + '-model';
-        displayMessage(text, 'model', modelMessageId);
-        
-        chatHistory.push({
-            id: modelMessageId,
-            role: "model",
-            parts: [{ text: text }]
-        });
-        saveChatHistory();
-
-    } catch (error) {
-        console.error("Error in handleRegenerate:", error);
-        displayMessage(`재생성 중 오류 발생: ${error.message}`, 'error');
-    } finally {
-        loadingIndicator.classList.add('hidden');
-    }
-}
+            } catch (error) {
+                console.error("Error in handleRegenerate:", error);
+                displayMessage(`재생성 중 오류 발생: ${error.message}`, 'error');
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
 
 
         /**
@@ -840,8 +870,7 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 throw new Error("API key is missing.");
             }
 
-            // ✨ modelName 변수를 사용하도록 수정 (Flash/Pro)
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelace.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
             const safetyThreshold = "BLOCK_NONE";
             const safetySettings = [
@@ -856,6 +885,7 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 parts: msg.parts
             }));
 
+            // ✨ MODIFIED: 시스템 프롬프트가 존재할 때만 unshift (페르소나 추천 시엔 null)
             if (systemInstructionText) {
                 apiSafeContents.unshift(
                     { role: "user", parts: [{ text: systemInstructionText }] },
@@ -906,6 +936,22 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                         return ""; 
                     }
                 } else {
+                    // ✨ NEW (y 요청): finishReason이 MAX_TOKENS일 경우 (길이 제한)
+                    if (candidate.finishReason === 'MAX_TOKENS') {
+                        // Gemini Pro API는 max_output_tokens 파라미터가 없어서
+                        // 프롬프트로 제어해야 하는데, 500자를 넘기면 여기서 걸릴 수 있음.
+                        // 이 경우에도 일단 내용은 반환해 줌.
+                         if (candidate.content && 
+                            candidate.content.parts && 
+                            candidate.content.parts.length > 0 &&
+                            candidate.content.parts[0].text != null 
+                        ) {
+                            console.warn("API finishReason: MAX_TOKENS. 응답이 잘렸을 수 있습니다.");
+                            return candidate.content.parts[0].text;
+                        } else {
+                            return ""; 
+                        }
+                    }
                     throw new Error(`API가 정상 종료되지 않았습니다. (이유: ${candidate.finishReason || '알 수 없음'})`);
                 }
             } else {
@@ -927,6 +973,7 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
             const worldview = worldviewInput.value; 
             const memory = memoryInput.value;
 
+            // ✨ MODIFIED (y 요청): 500자 길이 제한 지침 추가
             let prompt = `
 [시스템 지침 시작]
 당신은 'AI 페르소나' 역할을 수행하는 AI입니다. 당신의 유일한 목표는 아래 설정에 완벽하게 몰입하여 사용자와 대화하는 것입니다.
@@ -952,6 +999,7 @@ ${memory || "특별히 기억할 사항은 없습니다."}
 3.  **반복 금지**: 바로 직전 대화(\`contents\`의 마지막 \`model\` 응답)에서 했던 말을 그대로 반복하지 마세요.
 4.  **설정 언급 금지**: 당신의 페르소나, 사용자의 페르소나, 또는 이 지침 자체에 대해 *절대* 직접적으로 언급하지 마세요. (예: "저는 집사 고양입니다", "당신은 제 주인님이시죠" 같은 '설정'을 설명하는 말을 하지 말고, 그냥 그 역할에 맞춰 자연스럽게 행동하세요.)
 5.  **연속성**: \`contents\` (대화 내역)를 바탕으로 대화를 자연스럽게 이어가세요.
+6.  **✨ 길이 제한**: 당신의 응답은 간결해야 하며, **절대로 500자를 초과하지 마세요.**
 [시스템 지침 종료]
 
 (이제 사용자와의 실제 대화가 시작됩니다.)
@@ -977,11 +1025,9 @@ ${memory || "특별히 기억할 사항은 없습니다."}
                 htmlContent = `<span class="font-bold block text-blue-200">나</span>`;
             } else if (role === 'model') {
                 bubble.classList.add('bg-gray-700', 'self-start', 'mr-auto');
-                // ✨ FIX: 이모지 제거 (y 요청)
                 htmlContent = `<span class="font-bold block text-blue-300">AI</span>`;
             } else { // 'error'
                 bubble.classList.add('bg-red-700', 'self-start', 'mr-auto');
-                // ✨ FIX: 이모지 제거 (y 요청)
                 htmlContent = `<span class="font-bold block text-red-200">시스템</span>`;
             }
 
@@ -990,7 +1036,15 @@ ${memory || "특별히 기억할 사항은 없습니다."}
             const p = document.createElement('p');
             p.classList.add('text-white');
             
-            message.split('\n').forEach((line, index, arr) => {
+            // ✨ MODIFIED (y 요청): 500자 제한된 프롬프트로 인해 텍스트가 잘릴 수 있음
+            // 만약 500자를 넘어가면 (프롬프트가 안 먹히면) 강제로 자르고 ... 추가
+            let processedMessage = message;
+            // if (role === 'model' && processedMessage.length > 550) { // 500자에서 약간의 여유를 줌
+            //     console.warn("Model response exceeded 500 chars, truncating.");
+            //     processedMessage = processedMessage.substring(0, 500) + "... (응답이 너무 길어 잘렸습니다)";
+            // }
+
+            processedMessage.split('\n').forEach((line, index, arr) => {
                 p.appendChild(document.createTextNode(line));
                 if (index < arr.length - 1) {
                     p.appendChild(document.createElement('br'));
@@ -1041,8 +1095,10 @@ ${memory || "특별히 기억할 사항은 없습니다."}
                     return response; // 성공
                 } catch (error) {
                     lastError = error;
-                    await new Promise(res => setTimeout(res, delay));
-                    delay *= 2; 
+                    if (i < retries - 1) {
+                        await new Promise(res => setTimeout(res, delay));
+                        delay *= 2; 
+                    }
                 }
             }
             if (!lastError) {
@@ -1054,7 +1110,6 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
-
 
 
 

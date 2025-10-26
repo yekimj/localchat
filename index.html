@@ -345,10 +345,19 @@
         btnRegenerate.addEventListener('click', handleRegenerate);
         btnClearChat.addEventListener('click', showClearConfirmModal); 
         btnModalCancel.addEventListener('click', hideClearConfirmModal);
-        btnModalConfirmDelete.addEventListener('click', () => {
-            executeClearChat(); 
-            hideClearConfirmModal(); 
-        });
+    // ✨✨✨ 수정된 부분 ✨✨✨
+    btnModalConfirmDelete.addEventListener('click', () => {
+        const idToDelete = confirmModal.dataset.idToDelete; // 저장된 채팅 삭제 ID 확인
+
+        if (idToDelete) {
+            // '저장된 채팅'을 삭제하는 경우
+            deleteChatSaveById(idToDelete);
+        } else {
+            // '현재 채팅'을 삭제하는 경우 (기존 기능)
+            executeClearChat();
+        }
+        hideClearConfirmModal(); // 모달 닫기
+    });
         btnOpenSidebar.addEventListener('click', () => {
             sidebar.classList.remove('-translate-x-full');
             sidebarBackdrop.classList.remove('hidden');
@@ -1185,6 +1194,7 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
 
 
 

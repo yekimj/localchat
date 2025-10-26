@@ -501,10 +501,24 @@
             if (savedHistory) {
                 chatHistory = JSON.parse(savedHistory);
                 chatHistory.forEach(msg => {
-                    if (msg.parts && msg.parts[0] && msg.parts[0].text) {
-                         displayMessage(msg.parts[0].text, msg.role, msg.id);
-                    }
-                });
+     if (msg.parts && msg.parts[0] && msg.parts[0].text) {
+         // 윈도우 메모장 줄바꿈(\r\n)으로 통일
+         const text = msg.parts[0].text.replace(/\n/g, '\r\n');
+         
+         // 역할(role)에 따라 태그 추가
+         if (msg.role === 'user') {
+            downloadContent += "{{user}}\r\n";
+         } else if (msg.role === 'model') {
+            downloadContent += "{{ai}}\r\n";
+         }
+         
+         // 채팅 내용 추가
+         downloadContent += text + "\r\n";
+         
+         // y가 요청한 한 칸 띄우기 (줄바꿈)
+         downloadContent += "\r\n"; 
+     }
+});
             }
         }
 
@@ -1108,6 +1122,7 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
 
 
 

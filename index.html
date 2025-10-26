@@ -870,7 +870,7 @@ AI나 시스템에 대한 정보는 제외하고, 오직 'user'에 대한 사실
                 throw new Error("API key is missing.");
             }
 
-            const apiUrl = `https://generativelace.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
             const safetyThreshold = "BLOCK_NONE";
             const safetySettings = [
@@ -1110,6 +1110,7 @@ ${memory || "특별히 기억할 사항은 없습니다."}
     </script>
 </body>
 </html>
+
 
 
 

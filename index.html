@@ -1232,8 +1232,14 @@
                 );
             }
             const payload = {
-                contents: apiSafeContents, 
-                safetySettings: safetySettings 
+                contents: apiSafeContents,
+                safetySettings: safetySettings,
+                // ✨ 답변 길이를 늘려주는 설정 추가 ✨
+                generationConfig: {
+                    maxOutputTokens: 2000,  // 답변 최대 길이 (넉넉하게 설정)
+                    temperature: 0.8,       // 창의성 (1.0이면 감성적이고 말을 더 많이 함)
+                    topP: 0.95
+                }
             };
             const response = await fetchWithRetry(apiUrl, {
                 method: 'POST',
@@ -1424,6 +1430,7 @@ ${memory || "설정 없음"}
     </script>
 </body>
 </html>
+
 
 
 

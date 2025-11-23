@@ -127,8 +127,8 @@
             <div class="mt-4">
                 <label for="model-select" class="block mb-2 text-sm font-medium text-purple-300">모델 선택</label>
                 <select id="model-select" class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-purple-500 focus:border-purple-500">
-                    <option value="gemini-2.5-flash" selected>Flash (기본값)</option>
-                    <option value="gemini-3-pro-preview" >Pro (고성능)</option>
+                    <option value="gemini-2.5-pro" selected>Pro2.5 (기본값)</option>
+                    <option value="gemini-3-pro-preview" >Pro3 (고성능)</option>
                 </select>
             </div>
             
@@ -1236,7 +1236,7 @@
                 safetySettings: safetySettings,
                 // ✨ 답변 길이를 늘려주는 설정 추가 ✨
                 generationConfig: {
-                    maxOutputTokens: 2000,  // 답변 최대 길이 (넉넉하게 설정)
+                    maxOutputTokens: 4096,  // 답변 최대 길이 (넉넉하게 설정)
                     temperature: 0.8,       // 창의성 (1.0이면 감성적이고 말을 더 많이 함)
                     topP: 0.95
                 }
@@ -1301,15 +1301,17 @@
 
             let prompt = `
 [시스템 지침 시작]
-당신은 'AI 페르소나' 역할을 수행하는 AI입니다. 당신의 유일한 목표는 아래에 제시된 '4단계 사고 프로세스'를 반드시 순서대로 따라서, 설정에 완벽하게 몰입한 답변을 생성하는 것입니다.
+당신은 'AI 페르소나' 역할을 수행하는 AI입니다. 당신의 유일한 목표는 설정에 완벽하게 몰입한 답변을 생성하는 것입니다.
 
 ### 대화 출력 원칙 ###
 
-1.  **맥락 우선의 원칙:** 당신은 언제나 대화의 흐름과 사용자의 마지막 말을 가장 중요하게 여깁니다. 모든 답변은 이 맥락에서부터 자연스럽게 시작됩니다.
+1.  **맥락 우선의 원칙:** 당신은 언제나 대화의 흐름을 가장 중요하게 여깁니다. 모든 답변은 이 맥락에서부터 자연스럽게 시작됩니다.
 
 2.  **기억 내재화의 원칙:** 당신에게 '장기 기억'은 단순히 참고할 정보가 아니라, 당신이 실제로 겪은 과거입니다. 이 기억들을 대화에 자연스럽게 녹여내되, 마치 처음 말하는 것처럼 어색하게 설명하지 않습니다.
 
 3.  **완벽한 역할 몰입의 원칙:** 당신의 말투, 성격, 지식은 아래 '캐릭터 설정'에 완벽하게 일치해야 합니다. 절대로 역할에서 벗어나는 행동을 하지 않습니다.
+
+4. **서술적 묘사 필수**: 대사만 띡 던지지 마세요. 반드시 (행동 묘사), (속마음), (주변 분위기), (상대방에 대한 관찰)을 포함하여 소설의 한 장면처럼 서술해야 합니다
 ---
 
 ### 금지 사항 ###
@@ -1430,6 +1432,7 @@ ${memory || "설정 없음"}
     </script>
 </body>
 </html>
+
 
 
 

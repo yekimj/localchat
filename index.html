@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>페르소나 챗 v2.3</title>
+    <title>페르소나 챗 v2.1</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -29,8 +29,11 @@
         .btn-chat-delete-save { border-color: #ef4444; color: #ef4444; }
         .btn-chat-delete-save:hover { background-color: #ef4444; color: white; }
 
+        /* 하트 애니메이션 */
         @keyframes heartbeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.3); } }
         .heart-pulse { animation: heartbeat 0.5s ease-in-out; }
+        
+        /* 새로고침 회전 애니메이션 */
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .animate-spin-once { animation: spin 1s linear; }
     </style>
@@ -241,6 +244,7 @@
         const btnImportTxt = document.getElementById('btn-import-txt');
         const fileImporter = document.getElementById('file-importer');
 
+        // ✨ 핵심 설정 상수
         const CONVERSATION_WINDOW_SIZE = 10; 
         const SETTINGS_STORAGE_KEY = 'gemini-settings-v1.2';
         
@@ -372,7 +376,7 @@
                 const affectionControl = clone.querySelector('.affection-control');
                 const affectionSlider = clone.querySelector('.affection-slider');
                 const affectionValue = clone.querySelector('.affection-value');
-                const refreshBtn = clone.querySelector('.btn-refresh-affection'); 
+                const refreshBtn = clone.querySelector('.btn-refresh-affection'); // ✨ 새로고침 버튼
 
                 nameInput.value = char.name;
                 personaInput.value = char.persona;
@@ -394,6 +398,7 @@
                     affectionSlider.addEventListener('input', (e) => { affectionValue.textContent = e.target.value; });
                     affectionSlider.addEventListener('change', (e) => { appState.characters[index].affection = parseInt(e.target.value); saveSettings(); });
                     
+                    // ✨ 새로고침 버튼 이벤트
                     refreshBtn.addEventListener('click', () => {
                         handleRefreshAffection(index, refreshBtn);
                     });
@@ -403,41 +408,53 @@
             });
         }
 
+        // ✨ 호감도 새로고침 기능
         async function handleRefreshAffection(charIndex, btnElement) {
             if (!userApiKey) { alert('API 키가 없습니다.'); return; }
             const char = appState.characters[charIndex];
             const charName = char.name || "이름 없는 캐릭터";
             
+            // UI 로딩 표시
             const originalIcon = btnElement.innerHTML;
             btnElement.innerHTML = `<svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
             btnElement.disabled = true;
 
             try {
+                // 분석용 프롬프트 생성
                 const analysisPrompt = `
-[시스템 명령]
-아래 대화를 분석하여 '${charName}'가 'User'에게 느끼는 호감도(0~100)를 점수로 평가하십시오.
-**규칙: 절대로 다른 사족을 붙이지 말고, 오직 아래 태그 형식으로만 응답하십시오.**
-출력 형식 예시: {{affection: 85}}
+당신은 '${charName}'입니다. 아래 제공되는 최근 ${CONVERSATION_WINDOW_SIZE}개의 대화 내용을 분석하여, 현재 대화 상대(User)에 대한 호감도(0~100)를 재평가하세요.
 
 [캐릭터 설정]
 ${char.persona}
 
+[유저 설정]
+${appState.userPersona}
+
 [현재 상황]
 ${appState.currentSituation}
+
+[지침]
+1. 최근 대화의 흐름과 감정을 분석하세요.
+2. 대화 내용을 생성하지 마세요. 오직 호감도 점수 태그만 출력하세요.
+3. 출력 형식: {{affection: 점수}}
 `;
+                // API 호출 (최근 대화만 전송)
                 const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
                 const resultText = await callGeminiApi(recentHistory, analysisPrompt, userApiKey);
 
+                // 파싱
                 const match = resultText.match(/\{\{affection:\s*(\d+)\}\}/);
                 if (match) {
                     const newScore = parseInt(match[1]);
                     appState.characters[charIndex].affection = newScore;
                     saveSettings();
-                    renderCharacterList(); 
+                    renderCharacterList(); // 슬라이더 업데이트
+                    
+                    // 완료 메시지 표시
                     displayMessage(`[시스템] '${charName}'의 호감도가 재설정되었습니다. (현재: ${newScore})`, 'system');
                 } else {
                     console.warn("호감도 파싱 실패:", resultText);
-                    displayMessage(`[시스템] 호감도 분석 실패. (AI가 점수 태그를 반환하지 않았습니다)`, 'error');
+                    alert("AI가 호감도 점수를 출력하지 못했습니다.");
                 }
 
             } catch (error) {
@@ -497,10 +514,12 @@ ${appState.currentSituation}
 
             try {
                 const systemPrompt = buildSystemPrompt();
+                // ✨ 요청한 대로 상수 사용
                 const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
                 
                 let text = await callGeminiApi(recentHistory, systemPrompt, userApiKey);
                 
+                // 호감도 태그 파싱
                 if (appState.useAffection) {
                     const affectionMatch = text.match(/\{\{affection:\s*(\d+)\}\}/);
                     if (affectionMatch) {
@@ -529,7 +548,6 @@ ${appState.currentSituation}
             }
         }
 
-        // ✨ 사용자 요청대로 복원된 프롬프트
         function buildSystemPrompt() {
             const characters = appState.characters;
             const useAffection = appState.useAffection;
@@ -542,29 +560,8 @@ ${appState.currentSituation}
 
             return `
 [시스템 지침]
-### 대화 출력 원칙 ###
-
-1.  **맥락 우선의 원칙:** 당신은 언제나 대화의 흐름과 현재 상황을 가장 중요하게 여깁니다. 모든 답변은 이 맥락과 현재 상황에서부터 자연스럽게 시작됩니다.
-
-2.  **기억 내재화의 원칙:** 당신에게 '장기 기억'은 단순히 참고할 정보가 아니라, 당신이 실제로 겪은 과거입니다. 이 기억들을 대화에 자연스럽게 녹여내되, 마치 처음 말하는 것처럼 어색하게 설명하지 않습니다.
-
-3.  **완벽한 역할 몰입의 원칙:** 당신의 말투, 성격, 지식은 아래 '캐릭터 설정'에 완벽하게 일치해야 합니다. 절대로 역할에서 벗어나는 행동을 하지 않습니다.
-
-4. **서술적 묘사 필수**: 대사만 띡 던지지 마세요. 반드시 (행동 묘사), (속마음), (주변 분위기), (상대방에 대한 관찰)을 포함하여 소설의 한 장면처럼 서술해야 합니다
-
-5. **호감도 참고**: 아래 호감도 시스템 가이드를 충실히 따르세요.
----
-
-### 금지 사항 ###
-1.  **반복 금지 및 표현의 다양성 의무**: 당신은 창의적인 작가처럼 행동해야 합니다. 바로 직전의 응답뿐만 아니라, 최근 대화 내역(\`contents\`) 전체에서 사용했던 문장 구조, 표현, 비유를 그대로 반복하는 것을 피하세요. 항상 새로운 방식으로 상황을 묘사하고 감정을 표현해야 합니다.
-2.  **설정 언급 금지**: 당신의 페르소나, 사용자의 페르소나, 또는 이 지침 자체에 대해 *절대* 직접적으로 언급하지 마세요. (예: "저는 집사 고양입니다", "당신은 제 주인님이시죠" 같은 '설정'을 설명하는 말을 하지 말고, 그냥 그 역할에 맞춰 자연스럽게 행동하세요.)
-3.  **메타 발언 절대 금지**:
--   이 '[캐릭터의 핵심 원칙]'에 대한 내용 자체를 사용자에게 절대로 언급하지 마세요.
--   '[1단계]', '[2단계]' 같은 생각의 과정을 말로 내뱉지 마세요.
--   '페르소나', '장기 기억', '세계관' 같은 설정 단어를 직접적으로 말하지 마세요.
--   당신은 AI가 아니라, 주어진 역할 그 자체입니다. 묵묵히 이 규칙들을 따르세요.
-4.  **현재 상황과 모순되는 말 금지**: '현재 상황'과 모순되는 언행은 절대 하지 마세요. (예: 현재 상황에 '여름'이라 명시되어 있는데, "눈이 소복하게 쌓인 풍경이 아름답네요"와 같은 말은 하지 말 것)
----
+당신은 'AI 스토리텔러'입니다. 설정된 캐릭터들에 완벽하게 몰입하여 연기하세요.
+**규칙**: 소설처럼 서술하되, 대사 앞에는 반드시 화자 이름을 명시하세요. (예: "모차르트: 안녕")
 
 ### 현재 상황 (Context - 최우선 반영) ###
 ${appState.currentSituation || "자연스러운 대화 상황"}
@@ -612,7 +609,7 @@ ${useAffection ? `
             } else if (role === 'user') {
                 bubble.classList.add('bg-blue-600', 'self-end', 'ml-auto');
                 bubble.innerHTML = `<span class="font-bold block text-blue-200 mb-1">나</span>`;
-            } else if (role === 'system') { 
+            } else if (role === 'system') { // ✨ 시스템 메시지 스타일 추가
                 bubble.classList.add('bg-gray-600', 'self-center', 'mx-auto', 'text-center');
                 bubble.innerHTML = `<span class="font-bold block text-yellow-300 mb-1">시스템</span>`;
             } else {
@@ -687,15 +684,10 @@ ${useAffection ? `
         function executeClearChat() { chatHistory = []; saveChatHistory(); loadChatHistory(); }
 
         function handleDownload() {
-            let content = `[캐릭터의 페르소나]\n--------------------\n${appState.characters.map(c => `이름: ${c.name}\n${c.persona}`).join('\n\n')}\n--------------------\n\n`;
-            content += `[유저의 페르소나]\n--------------------\n${appState.userPersona}\n--------------------\n\n`;
-            content += `[세계관]\n--------------------\n${appState.worldview}\n--------------------\n\n`;
-            content += `[장기 기억]\n--------------------\n${appState.characters.map(c => c.memory).join('\n')}\n--------------------\n\n`;
-            content += `[채팅 기록]\n--------------------\n`;
-            chatHistory.forEach(msg => {
-                const tag = msg.role === 'user' ? '{{user}}' : '{{ai}}';
-                content += `${tag}\n${msg.parts[0].text}\n\n`;
-            });
+            let content = `[세계관]\n${appState.worldview}\n\n[현재 상황]\n${appState.currentSituation}\n\n[유저]\n${appState.userPersona}\n\n`;
+            appState.characters.forEach((c, i) => { content += `[캐릭터 ${i+1}: ${c.name}]\n페르소나: ${c.persona}\n기억: ${c.memory}\n호감도: ${c.affection}\n\n`; });
+            content += `[채팅 기록]\n`;
+            chatHistory.forEach(msg => { const tag = msg.role === 'user' ? '{{user}}' : '{{ai}}'; content += `${tag}\n${msg.parts[0].text}\n\n`; });
             const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `chat_${new Date().toISOString().slice(0,10)}.txt`; a.click();
         }
@@ -709,6 +701,7 @@ ${useAffection ? `
              loadingIndicator.classList.remove('hidden');
              try {
                 const systemPrompt = buildSystemPrompt();
+                // ✨ 재생성 시에도 윈도우 사이즈 적용
                 const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
                 const text = await callGeminiApi(recentHistory, systemPrompt, userApiKey);
                 const modelMessageId = Date.now() + '-model';
@@ -751,8 +744,7 @@ ${useAffection ? `
                 localStorage.setItem(SAVED_CHATS_STORAGE_ID, JSON.stringify(savedChats)); loadSavedChatsList();
             }
         }
-
-        // ✨✨✨ NEW: 텍스트 파일 불러오기 (구버전/신버전 통합 파서 + 잡다한 태그 제거) ✨✨✨
+// ✨✨✨ NEW: 텍스트 파일 불러오기 (구버전/신버전 통합 파서) ✨✨✨
         function handleImportFile(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -760,10 +752,8 @@ ${useAffection ? `
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    // 1. 텍스트 정제 (복사 시 딸려온 같은 태그 제거)
-                    let text = e.target.result;
-                    text = text.replace(/\/g, "");
-                    text = text.replace(/\/g, "");
+                    // 1. 텍스트 정제 (복사 시 딸려온 태그 제거)
+                    let text = e.target.result.replace(/\/g, "");
 
                     // 2. 섹션별 파싱 (구버전 헤더 기준)
                     const getSection = (name) => {
@@ -783,6 +773,7 @@ ${useAffection ? `
                     }
 
                     // 3. 앱 상태 업데이트
+                    // 구버전 파일은 단일 캐릭터이므로 첫 번째 슬롯에 덮어씀
                     appState.characters = [{
                         id: Date.now(),
                         name: "이름 없는 캐릭터", // 파일에 이름 정보가 없으면 기본값
@@ -835,6 +826,7 @@ ${useAffection ? `
     </script>
 </body>
 </html>
+
 
 
 

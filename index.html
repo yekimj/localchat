@@ -745,17 +745,29 @@ ${useAffection ? `
             }
         }
       // ✨✨✨ 수정된 텍스트 불러오기 함수 (오류 제거 + 두 버전 호환) ✨✨✨
-        function handleImportFile(event) {
+                function handleImportFile(event) {
+
             const file = event.target.files[0];
-            if (!file) return;
+
+            if (!file) {
+
+                return; // 파일 선택 안 함
+
+            }
+
+            if (file.type !== 'text/plain') {
+
+                displayMessage('오류: .txt 텍스트 파일만 불러올 수 있습니다.', 'error');
+
+                return;
+
+            }
 
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
                     let text = e.target.result;
-                    
-                    // 1. [수정] 문법 오류를 일으키던 코드를 삭제하고, 태그를 지우는 코드로 대체했습니다.
-                    text = text.replace(/\/g, ""); 
+                
 
                     // 2. 텍스트 파싱
                     const parsedData = parseImportedText(text);
@@ -875,6 +887,7 @@ ${useAffection ? `
     </script>
 </body>
 </html>
+
 
 
 

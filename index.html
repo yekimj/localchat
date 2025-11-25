@@ -744,125 +744,128 @@ ${useAffection ? `
                 localStorage.setItem(SAVED_CHATS_STORAGE_ID, JSON.stringify(savedChats)); loadSavedChatsList();
             }
         }
-        // ✨✨✨ 7. NEW (y 요청): .txt 파일 불러오기 함수 ✨✨✨
-        // ---
-
-        /**
-         * 사용자가 선택한 .txt 파일을 읽고 파싱(분석)합니다.
-         */
+      // ✨✨✨ 수정된 텍스트 불러오기 함수 (오류 제거 + 두 버전 호환) ✨✨✨
         function handleImportFile(event) {
             const file = event.target.files[0];
-            if (!file) {
-                return; // 파일 선택 안 함
-            }
-            if (file.type !== 'text/plain') {
-                displayMessage('오류: .txt 텍스트 파일만 불러올 수 있습니다.', 'error');
-                return;
-            }
+            if (!file) return;
 
             const reader = new FileReader();
-            
             reader.onload = (e) => {
                 try {
-                    const text = e.target.result;
-                    // 텍스트를 파싱하여 데이터 객체로 변환
+                    let text = e.target.result;
+                    
+                    // 1. [수정] 문법 오류를 일으키던 코드를 삭제하고, 태그를 지우는 코드로 대체했습니다.
+                    text = text.replace(/\/g, ""); 
+
+                    // 2. 텍스트 파싱
                     const parsedData = parseImportedText(text);
 
-                    // 1. 파싱한 데이터를 사이드바 UI에 적용
-                    charPersonaInput.value = parsedData.settings.charPersona;
-                    userPersonaInput.value = parsedData.settings.userPersona;
-                    worldviewInput.value = parsedData.settings.worldview;
-                    memoryInput.value = parsedData.settings.memory;
-                    // (모델 설정은 txt에 없으므로 현재 값 유지)
+                    // 3. 데이터 적용 (값이 있는 경우에만 덮어씌움)
+                    if (parsedData.settings.charPersona) charPersonaInput.value = parsedData.settings.charPersona;
+                    if (parsedData.settings.userPersona) userPersonaInput.value = parsedData.settings.userPersona;
+                    if (parsedData.settings.worldview) worldviewInput.value = parsedData.settings.worldview;
+                    if (parsedData.settings.memory) memoryInput.value = parsedData.settings.memory;
 
-                    // 2. 파싱한 채팅 기록을 전역 변수에 덮어쓰기
+                    // 4. 채팅 기록 적용
                     chatHistory = parsedData.history;
 
-                    // 3. 채팅 화면 비우기 (UI만)
+                    // 5. 화면 갱신
                     chatDisplay.innerHTML = '';
-
-                    // 4. 새 채팅 기록을 UI에 렌더링
                     chatHistory.forEach(msg => {
                         if (msg.parts && msg.parts[0] && msg.parts[0].text) {
                             displayMessage(msg.parts[0].text, msg.role, msg.id);
                         }
                     });
 
-                    // 5. ✨ 중요: "현재" 채팅 상태 (localStorage)를 방금 불러온 내용으로 덮어쓰기
+                    // 6. 저장
                     saveSettings();
                     saveChatHistory();
-
-                    displayMessage(`'${file.name}' 파일에서 채팅을 성공적으로 불러왔습니다.`, 'model');
                     
-                    // 모바일상태면 사이드바 닫기
-                    if (window.innerWidth < 768) {
-                        btnCloseSidebar.click();
+                    // 설정 로드하여 상태 동기화 (캐릭터 리스트 등)
+                    if (typeof appState !== 'undefined') {
+                         // v2.x 버전 호환용 상태 업데이트
+                         appState.characters[0].name = "불러온 캐릭터"; // 이름 정보가 없을 경우 대비
+                         appState.characters[0].persona = charPersonaInput.value;
+                         appState.characters[0].memory = memoryInput.value;
+                         appState.userPersona = userPersonaInput.value;
+                         appState.worldview = worldviewInput.value;
+                         saveSettings(); 
                     }
 
-                } catch (parseError) {
-                    console.error("File parse error:", parseError);
-                    displayMessage(`파일 분석 실패: ${parseError.message}. 형식이 올바른지 확인하세요. (예: [캐릭터의 페르소나] 태그 등)`, 'error');
+                    displayMessage(`'${file.name}' 파일을 불러왔습니다.`, 'model');
+                    
+                    if (window.innerWidth < 768) {
+                        const btnClose = document.getElementById('btn-close-sidebar');
+                        if(btnClose) btnClose.click();
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    alert("파일 불러오기 실패: " + err.message);
                 } finally {
-                    // input 값을 초기화하여 동일한 파일을 다시 선택해도 'change' 이벤트가 발생하도록 함
-                    event.target.value = null;
+                    event.target.value = ''; 
                 }
             };
-
-            reader.onerror = () => {
-                displayMessage(`파일 읽기 오류: ${reader.error}`, 'error');
-                event.target.value = null;
-            };
-
             reader.readAsText(file);
         }
 
         /**
-         * .txt 파일의 텍스트를 분석하여 설정과 채팅 기록 객체로 변환합니다.
+         * 텍스트 파싱 함수 (구버전/신버전 헤더 모두 지원하도록 수정됨)
          */
         function parseImportedText(text) {
             const settings = {};
             const history = [];
 
-            // 1. 설정 파싱 (정규식 사용)
-            // /s 플래그: .이 줄바꿈 문자(\n)도 포함하도록 함
-            // (.*?) : 게으른 탐색(lazy matching)으로 가장 가까운 --- 까지의 내용만 가져옴
-            const personaMatch = text.match(/\[캐릭터의 페르소나\]\r?\n-+\r?\n(.*?)\r?\n-+/s);
-            settings.charPersona = personaMatch ? personaMatch[1].trim() : '';
+            // 도우미 함수: 정규식으로 섹션 찾기
+            const getSection = (headerRegexStr) => {
+                // 헤더부터 다음 헤더([) 전까지 추출
+                const regex = new RegExp(`\\[${headerRegexStr}\\][\\s\\S]*?(?=\\n\\[|$)`);
+                const match = text.match(regex);
+                if (match) {
+                    // 헤더 줄([xxx])을 제거하고 내용만 반환
+                    return match[0].replace(/^\[.*?\]\s*/, '').trim();
+                }
+                return "";
+            };
 
-            const userMatch = text.match(/\[유저의 페르소나\]\r?\n-+\r?\n(.*?)\r?\n-+/s);
-            settings.userPersona = userMatch ? userMatch[1].trim() : '';
+            // 1. 캐릭터 페르소나 & 기억 파싱 (구버전/신버전 분기)
+            // 신버전은 [캐릭터 1: ...] 헤더를 사용
+            let charBlock = getSection('캐릭터.*'); 
+            
+            if (charBlock.includes('페르소나:') && charBlock.includes('기억:')) {
+                // 신버전 파일 형식 (하나의 블록 안에 페르소나/기억이 같이 있음)
+                const pMatch = charBlock.match(/페르소나:\s*([\s\S]*?)(?=\n기억:|$)/);
+                const mMatch = charBlock.match(/기억:\s*([\s\S]*?)$/);
+                settings.charPersona = pMatch ? pMatch[1].trim() : "";
+                settings.memory = mMatch ? mMatch[1].trim() : "";
+            } else {
+                // 구버전 파일 형식 (헤더가 따로 있음)
+                settings.charPersona = getSection('캐릭터의 페르소나');
+                settings.memory = getSection('장기 기억');
+                // 만약 위에서 못 찾았으면 charBlock을 페르소나로 간주
+                if (!settings.charPersona && charBlock) settings.charPersona = charBlock;
+            }
 
-            const worldMatch = text.match(/\[세계관\]\r?\n-+\r?\n(.*?)\r?\n-+/s);
-            settings.worldview = worldMatch ? worldMatch[1].trim() : '';
+            // 2. 나머지 설정 파싱
+            settings.userPersona = getSection('(?:유저의 페르소나|유저)');
+            settings.worldview = getSection('세계관');
 
-            const memoryMatch = text.match(/\[장기 기억\]\r?\n-+\r?\n(.*?)\r?\n-+/s);
-            settings.memory = memoryMatch ? memoryMatch[1].trim() : '';
-
-            // 2. 채팅 기록 파싱
-            const chatBlockMatch = text.match(/\[채팅 기록\]\r?\n-+\r?\n([\s\S]*)/);
-            if (chatBlockMatch && chatBlockMatch[1]) {
-                const chatBlock = chatBlockMatch[1].trim();
-                
-                // 태그({{ai}}, {{user}})를 기준으로 텍스트를 분할합니다.
-                // 정규식의 ( ... ) 캡처 그룹은 split 결과에 구분자(태그) 자체도 포함시킵니다.
+            // 3. 채팅 기록 파싱
+            const chatBlock = getSection('채팅 기록');
+            if (chatBlock) {
                 const parts = chatBlock.split(/(\{\{(?:ai|user)\}\}\r?\n)/);
-
                 let currentRole = null;
                 for (let i = 0; i < parts.length; i++) {
                     const part = parts[i];
-                    
-                    if (part.startsWith("{{ai}}")) {
-                        currentRole = "model";
-                    } else if (part.startsWith("{{user}}")) {
-                        currentRole = "user";
-                    } else if (currentRole && part.trim() !== "") {
-                        // 태그 다음에 나오는 텍스트 내용을 객체로 만듦
+                    if (part.startsWith("{{ai}}")) currentRole = "model";
+                    else if (part.startsWith("{{user}}")) currentRole = "user";
+                    else if (currentRole && part.trim() !== "") {
                         history.push({
-                            id: Date.now() + i, // 고유 ID 생성
+                            id: Date.now() + i,
                             role: currentRole,
-                            parts: [{ text: part.trim() }] // \r\n는 trim()으로 제거
+                            parts: [{ text: part.trim() }]
                         });
-                        currentRole = null; // 다음 태그를 기다림
+                        currentRole = null;
                     }
                 }
             }
@@ -872,6 +875,7 @@ ${useAffection ? `
     </script>
 </body>
 </html>
+
 
 
 

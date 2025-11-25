@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>페르소나 챗 v2.1</title>
+    <title>페르소나 챗 v2.2</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -29,11 +29,8 @@
         .btn-chat-delete-save { border-color: #ef4444; color: #ef4444; }
         .btn-chat-delete-save:hover { background-color: #ef4444; color: white; }
 
-        /* 하트 애니메이션 */
         @keyframes heartbeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.3); } }
         .heart-pulse { animation: heartbeat 0.5s ease-in-out; }
-        
-        /* 새로고침 회전 애니메이션 */
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .animate-spin-once { animation: spin 1s linear; }
     </style>
@@ -82,7 +79,7 @@
                 <label for="model-select" class="block mb-2 text-sm font-medium text-purple-300">모델 선택</label>
                 <select id="model-select" class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-purple-500 focus:border-purple-500">
                     <option value="gemini-2.5-pro" selected>Pro2.5 (기본값)</option>
-                    <option value="gemini-3-pro-preview" >Pro3 (2.1v)</option>
+                    <option value="gemini-3-pro-preview" >Pro3 (2.0v)</option>
                 </select>
             </div>
 
@@ -244,7 +241,6 @@
         const btnImportTxt = document.getElementById('btn-import-txt');
         const fileImporter = document.getElementById('file-importer');
 
-        // ✨ 핵심 설정 상수
         const CONVERSATION_WINDOW_SIZE = 10; 
         const SETTINGS_STORAGE_KEY = 'gemini-settings-v1.2';
         
@@ -376,7 +372,7 @@
                 const affectionControl = clone.querySelector('.affection-control');
                 const affectionSlider = clone.querySelector('.affection-slider');
                 const affectionValue = clone.querySelector('.affection-value');
-                const refreshBtn = clone.querySelector('.btn-refresh-affection'); // ✨ 새로고침 버튼
+                const refreshBtn = clone.querySelector('.btn-refresh-affection'); 
 
                 nameInput.value = char.name;
                 personaInput.value = char.persona;
@@ -398,7 +394,6 @@
                     affectionSlider.addEventListener('input', (e) => { affectionValue.textContent = e.target.value; });
                     affectionSlider.addEventListener('change', (e) => { appState.characters[index].affection = parseInt(e.target.value); saveSettings(); });
                     
-                    // ✨ 새로고침 버튼 이벤트
                     refreshBtn.addEventListener('click', () => {
                         handleRefreshAffection(index, refreshBtn);
                     });
@@ -408,53 +403,43 @@
             });
         }
 
-        // ✨ 호감도 새로고침 기능
         async function handleRefreshAffection(charIndex, btnElement) {
             if (!userApiKey) { alert('API 키가 없습니다.'); return; }
             const char = appState.characters[charIndex];
             const charName = char.name || "이름 없는 캐릭터";
             
-            // UI 로딩 표시
             const originalIcon = btnElement.innerHTML;
             btnElement.innerHTML = `<svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
             btnElement.disabled = true;
 
             try {
-                // 분석용 프롬프트 생성
+                // ✨ 중요: 오직 점수만 뱉으라고 강력하게 지시
                 const analysisPrompt = `
-당신은 '${charName}'입니다. 아래 제공되는 최근 ${CONVERSATION_WINDOW_SIZE}개의 대화 내용을 분석하여, 현재 대화 상대(User)에 대한 호감도(0~100)를 재평가하세요.
+[시스템 명령]
+아래 대화를 분석하여 '${charName}'가 'User'에게 느끼는 호감도(0~100)를 점수로 평가하십시오.
+**규칙: 절대로 다른 사족을 붙이지 말고, 오직 아래 태그 형식으로만 응답하십시오.**
+출력 형식 예시: {{affection: 85}}
 
 [캐릭터 설정]
 ${char.persona}
 
-[유저 설정]
-${appState.userPersona}
-
 [현재 상황]
 ${appState.currentSituation}
-
-[지침]
-1. 최근 대화의 흐름과 감정을 분석하세요.
-2. 대화 내용을 생성하지 마세요. 오직 호감도 점수 태그만 출력하세요.
-3. 출력 형식: {{affection: 점수}}
 `;
-                // API 호출 (최근 대화만 전송)
                 const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
                 const resultText = await callGeminiApi(recentHistory, analysisPrompt, userApiKey);
 
-                // 파싱
                 const match = resultText.match(/\{\{affection:\s*(\d+)\}\}/);
                 if (match) {
                     const newScore = parseInt(match[1]);
                     appState.characters[charIndex].affection = newScore;
                     saveSettings();
-                    renderCharacterList(); // 슬라이더 업데이트
-                    
-                    // 완료 메시지 표시
+                    renderCharacterList(); 
                     displayMessage(`[시스템] '${charName}'의 호감도가 재설정되었습니다. (현재: ${newScore})`, 'system');
                 } else {
                     console.warn("호감도 파싱 실패:", resultText);
-                    alert("AI가 호감도 점수를 출력하지 못했습니다.");
+                    // 실패해도 에러 팝업 대신 시스템 메시지로 알림 (덜 거슬리게)
+                    displayMessage(`[시스템] 호감도 분석 실패. (AI가 점수 태그를 반환하지 않았습니다)`, 'error');
                 }
 
             } catch (error) {
@@ -514,12 +499,10 @@ ${appState.currentSituation}
 
             try {
                 const systemPrompt = buildSystemPrompt();
-                // ✨ 요청한 대로 상수 사용
                 const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
                 
                 let text = await callGeminiApi(recentHistory, systemPrompt, userApiKey);
                 
-                // 호감도 태그 파싱
                 if (appState.useAffection) {
                     const affectionMatch = text.match(/\{\{affection:\s*(\d+)\}\}/);
                     if (affectionMatch) {
@@ -630,7 +613,7 @@ ${useAffection ? `
             } else if (role === 'user') {
                 bubble.classList.add('bg-blue-600', 'self-end', 'ml-auto');
                 bubble.innerHTML = `<span class="font-bold block text-blue-200 mb-1">나</span>`;
-            } else if (role === 'system') { // ✨ 시스템 메시지 스타일 추가
+            } else if (role === 'system') { 
                 bubble.classList.add('bg-gray-600', 'self-center', 'mx-auto', 'text-center');
                 bubble.innerHTML = `<span class="font-bold block text-yellow-300 mb-1">시스템</span>`;
             } else {
@@ -705,10 +688,15 @@ ${useAffection ? `
         function executeClearChat() { chatHistory = []; saveChatHistory(); loadChatHistory(); }
 
         function handleDownload() {
-            let content = `[세계관]\n${appState.worldview}\n\n[현재 상황]\n${appState.currentSituation}\n\n[유저]\n${appState.userPersona}\n\n`;
-            appState.characters.forEach((c, i) => { content += `[캐릭터 ${i+1}: ${c.name}]\n페르소나: ${c.persona}\n기억: ${c.memory}\n호감도: ${c.affection}\n\n`; });
-            content += `[채팅 기록]\n`;
-            chatHistory.forEach(msg => { const tag = msg.role === 'user' ? '{{user}}' : '{{ai}}'; content += `${tag}\n${msg.parts[0].text}\n\n`; });
+            let content = `[캐릭터의 페르소나]\n--------------------\n${appState.characters.map(c => `이름: ${c.name}\n${c.persona}`).join('\n\n')}\n--------------------\n\n`;
+            content += `[유저의 페르소나]\n--------------------\n${appState.userPersona}\n--------------------\n\n`;
+            content += `[세계관]\n--------------------\n${appState.worldview}\n--------------------\n\n`;
+            content += `[장기 기억]\n--------------------\n${appState.characters.map(c => c.memory).join('\n')}\n--------------------\n\n`;
+            content += `[채팅 기록]\n--------------------\n`;
+            chatHistory.forEach(msg => {
+                const tag = msg.role === 'user' ? '{{user}}' : '{{ai}}';
+                content += `${tag}\n${msg.parts[0].text}\n\n`;
+            });
             const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `chat_${new Date().toISOString().slice(0,10)}.txt`; a.click();
         }
@@ -722,7 +710,6 @@ ${useAffection ? `
              loadingIndicator.classList.remove('hidden');
              try {
                 const systemPrompt = buildSystemPrompt();
-                // ✨ 재생성 시에도 윈도우 사이즈 적용
                 const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
                 const text = await callGeminiApi(recentHistory, systemPrompt, userApiKey);
                 const modelMessageId = Date.now() + '-model';
@@ -765,15 +752,90 @@ ${useAffection ? `
                 localStorage.setItem(SAVED_CHATS_STORAGE_ID, JSON.stringify(savedChats)); loadSavedChatsList();
             }
         }
+
+        // ✨✨✨ NEW: 텍스트 파일 불러오기 (구버전/신버전 통합 파서) ✨✨✨
         function handleImportFile(event) {
-             const file = event.target.files[0]; if(!file) return;
-             const reader = new FileReader();
-             reader.onload = (e) => { alert("v1.2 이상 파일만 지원합니다."); };
-             reader.readAsText(file);
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    // 1. 텍스트 정제 (복사 시 딸려온 태그 제거)
+                    let text = e.target.result.replace(/\/g, "");
+
+                    // 2. 섹션별 파싱 (구버전 헤더 기준)
+                    const getSection = (name) => {
+                        const regex = new RegExp(`\\[${name}\\]\\s*-+\\s*([\\s\\S]*?)(?=\\n\\[|$)`);
+                        const match = text.match(regex);
+                        return match ? match[1].trim() : "";
+                    };
+
+                    const charPersona = getSection('캐릭터의 페르소나');
+                    const userPersona = getSection('유저의 페르소나');
+                    const worldview = getSection('세계관');
+                    const memory = getSection('장기 기억');
+                    const chatSection = getSection('채팅 기록');
+
+                    if (!charPersona && !chatSection) {
+                        throw new Error("올바른 형식이 아닙니다. (헤더를 찾을 수 없음)");
+                    }
+
+                    // 3. 앱 상태 업데이트
+                    // 구버전 파일은 단일 캐릭터이므로 첫 번째 슬롯에 덮어씀
+                    appState.characters = [{
+                        id: Date.now(),
+                        name: "이름 없는 캐릭터", // 파일에 이름 정보가 없으면 기본값
+                        persona: charPersona,
+                        memory: memory,
+                        affection: 0
+                    }];
+                    appState.userPersona = userPersona;
+                    appState.worldview = worldview;
+
+                    // 4. 채팅 기록 파싱 ({{user}}, {{ai}} 태그 기준)
+                    chatHistory = [];
+                    if (chatSection) {
+                        const parts = chatSection.split(/(\{\{user\}\}|\{\{ai\}\})/g);
+                        let currentRole = null;
+                        
+                        for (let i = 0; i < parts.length; i++) {
+                            const part = parts[i].trim();
+                            if (part === "{{user}}") currentRole = "user";
+                            else if (part === "{{ai}}") currentRole = "model";
+                            else if (currentRole && part) {
+                                chatHistory.push({
+                                    id: Date.now() + i,
+                                    role: currentRole,
+                                    parts: [{ text: part }]
+                                });
+                                currentRole = null;
+                            }
+                        }
+                    }
+
+                    // 5. 저장 및 렌더링
+                    saveSettings();
+                    saveChatHistory();
+                    loadSettings();
+                    loadChatHistory();
+                    
+                    displayMessage("파일을 성공적으로 불러왔습니다!", 'system');
+                    if (window.innerWidth < 768) btnCloseSidebar.click();
+
+                } catch (err) {
+                    console.error(err);
+                    alert("파일 불러오기 실패: " + err.message);
+                } finally {
+                    event.target.value = ''; // 같은 파일 다시 선택 가능하게 리셋
+                }
+            };
+            reader.readAsText(file);
         }
     </script>
 </body>
 </html>
+
 
 
 

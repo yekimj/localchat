@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>페르소나 챗 v1.3</title>
+    <title>페르소나 챗 v2.0</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -78,7 +78,7 @@
                 <label for="model-select" class="block mb-2 text-sm font-medium text-purple-300">모델 선택</label>
                 <select id="model-select" class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-purple-500 focus:border-purple-500">
                     <option value="gemini-2.5-pro" selected>Pro2.5 (기본값)</option>
-                    <option value="gemini-3-pro-preview" >Pro3 (고성능)</option>
+                    <option value="gemini-3-pro-preview" >Pro3 (2.0v)</option>
                 </select>
             </div>
 
@@ -176,7 +176,7 @@
             </div>
             <div class="affection-control mt-3 pt-2 border-t border-gray-600 hidden">
                 <div class="flex justify-between text-xs mb-1">
-                    <span class="text-pink-400 font-bold">❤️ 호감도</span>
+                    <span class="text-pink-400 font-bold"> 호감도</span>
                     <span class="affection-value text-white">0</span>
                 </div>
                 <input type="range" min="0" max="100" value="0" class="affection-slider w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-pink-500">
@@ -431,7 +431,7 @@
             } else {
                 if (chatHistory.length === 0) return;
                 if (!loadingIndicator.classList.contains('hidden')) return;
-                prompt = "(사용자가 침묵/행동으로 반응함. 이야기 진행)";
+                prompt = "(사용자가 다음 차례를 넘겼습니다. 현재까지의 대화 흐름을 이어받아, 당신의 캐릭터가 할 다음 행동이나 대사, 혹은 주변 상황에 대한 묘사를 통해 이야기를 진행시키세요)";
                 displayUserMessage = false;
             }
 
@@ -701,6 +701,7 @@ ${useAffection ? `
     </script>
 </body>
 </html>
+
 
 
 

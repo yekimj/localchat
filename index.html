@@ -744,16 +744,95 @@ ${useAffection ? `
                 localStorage.setItem(SAVED_CHATS_STORAGE_ID, JSON.stringify(savedChats)); loadSavedChatsList();
             }
         }
-        function handleImportFile(event) {
-             const file = event.target.files[0]; if(!file) return;
-             const reader = new FileReader();
-             reader.onload = (e) => { alert("v1.2 이상 파일만 지원합니다."); };
-             reader.readAsText(file);
-        }
-    </script>
-</body>
-</html>
+    function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    let text = e.target.result;
+                    
+                    // ▼▼▼ [수정된 부분] ▼▼▼
+                    // 기존의 에러 코드(text.replace(/\/g, ""))를 삭제하고
+                    // 소스 태그()를 제거하는 올바른 코드로 변경했습니다.
+                    text = text.replace(/\/g, "");
+                    text = text.replace(/\/g, "");
+                    // ▲▲▲ [수정된 부분 끝] ▲▲▲
+
+                    // 섹션 파싱
+                    const getSection = (name) => {
+                        const regex = new RegExp(`\\[${name}\\]\\s*-+\\s*([\\s\\S]*?)(?=\\n\\[|$)`);
+                        const match = text.match(regex);
+                        return match ? match[1].trim() : "";
+                    };
+
+                    const charPersona = getSection('캐릭터의 페르소나');
+                    const userPersona = getSection('유저의 페르소나');
+                    const worldview = getSection('세계관');
+                    const memory = getSection('장기 기억');
+                    const chatSection = getSection('채팅 기록');
+
+                    if (!charPersona && !chatSection) {
+                        throw new Error("올바른 형식이 아닙니다. (헤더를 찾을 수 없음)");
+                    }
+
+                    // 앱 상태 업데이트 (이전 버전 파일 호환)
+                    appState.characters = [{
+                        id: Date.now(),
+                        name: "이름 없는 캐릭터", 
+                        persona: charPersona,
+                        memory: memory,
+                        affection: 0
+                    }];
+                    appState.userPersona = userPersona;
+                    appState.worldview = worldview;
+
+                    // 채팅 기록 파싱
+                    chatHistory = [];
+                    if (chatSection) {
+                        // {{user}}, {{ai}} 태그로 분리
+                        const parts = chatSection.split(/(\{\{user\}\}|\{\{ai\}\})/g);
+                        let currentRole = null;
+                        
+                        for (let i = 0; i < parts.length; i++) {
+                            const part = parts[i].trim();
+                            if (part === "{{user}}") currentRole = "user";
+                            else if (part === "{{ai}}") currentRole = "model";
+                            else if (currentRole && part) {
+                                chatHistory.push({
+                                    id: Date.now() + i,
+                                    role: currentRole,
+                                    parts: [{ text: part }]
+                                });
+                                currentRole = null;
+                            }
+                        }
+                    }
+
+                    // 저장 및 렌더링
+                    saveSettings();
+                    saveChatHistory();
+                    loadSettings();
+                    loadChatHistory();
+                    
+                    displayMessage("파일을 성공적으로 불러왔습니다!", 'system');
+                    
+                    // 모바일이면 사이드바 닫기
+                    if (window.innerWidth < 768) {
+                        const btnClose = document.getElementById('btn-close-sidebar');
+                        if(btnClose) btnClose.click();
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    alert("파일 불러오기 실패: " + err.message);
+                } finally {
+                    event.target.value = ''; 
+                }
+            };
+            reader.readAsText(file);
+        }
 
 
 

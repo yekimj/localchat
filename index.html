@@ -744,84 +744,11 @@ ${useAffection ? `
                 localStorage.setItem(SAVED_CHATS_STORAGE_ID, JSON.stringify(savedChats)); loadSavedChatsList();
             }
         }
-// ✨✨✨ NEW: 텍스트 파일 불러오기 (구버전/신버전 통합 파서) ✨✨✨
         function handleImportFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    // 1. 텍스트 정제 (복사 시 딸려온 태그 제거)
-                    let text = e.target.result.replace(/\/g, "");
-
-                    // 2. 섹션별 파싱 (구버전 헤더 기준)
-                    const getSection = (name) => {
-                        const regex = new RegExp(`\\[${name}\\]\\s*-+\\s*([\\s\\S]*?)(?=\\n\\[|$)`);
-                        const match = text.match(regex);
-                        return match ? match[1].trim() : "";
-                    };
-
-                    const charPersona = getSection('캐릭터의 페르소나');
-                    const userPersona = getSection('유저의 페르소나');
-                    const worldview = getSection('세계관');
-                    const memory = getSection('장기 기억');
-                    const chatSection = getSection('채팅 기록');
-
-                    if (!charPersona && !chatSection) {
-                        throw new Error("올바른 형식이 아닙니다. (헤더를 찾을 수 없음)");
-                    }
-
-                    // 3. 앱 상태 업데이트
-                    // 구버전 파일은 단일 캐릭터이므로 첫 번째 슬롯에 덮어씀
-                    appState.characters = [{
-                        id: Date.now(),
-                        name: "이름 없는 캐릭터", // 파일에 이름 정보가 없으면 기본값
-                        persona: charPersona,
-                        memory: memory,
-                        affection: 0
-                    }];
-                    appState.userPersona = userPersona;
-                    appState.worldview = worldview;
-
-                    // 4. 채팅 기록 파싱 ({{user}}, {{ai}} 태그 기준)
-                    chatHistory = [];
-                    if (chatSection) {
-                        const parts = chatSection.split(/(\{\{user\}\}|\{\{ai\}\})/g);
-                        let currentRole = null;
-                        
-                        for (let i = 0; i < parts.length; i++) {
-                            const part = parts[i].trim();
-                            if (part === "{{user}}") currentRole = "user";
-                            else if (part === "{{ai}}") currentRole = "model";
-                            else if (currentRole && part) {
-                                chatHistory.push({
-                                    id: Date.now() + i,
-                                    role: currentRole,
-                                    parts: [{ text: part }]
-                                });
-                                currentRole = null;
-                            }
-                        }
-                    }
-
-                    // 5. 저장 및 렌더링
-                    saveSettings();
-                    saveChatHistory();
-                    loadSettings();
-                    loadChatHistory();
-                    
-                    displayMessage("파일을 성공적으로 불러왔습니다!", 'system');
-                    if (window.innerWidth < 768) btnCloseSidebar.click();
-
-                } catch (err) {
-                    console.error(err);
-                    alert("파일 불러오기 실패: " + err.message);
-                } finally {
-                    event.target.value = ''; // 같은 파일 다시 선택 가능하게 리셋
-                }
-            };
-            reader.readAsText(file);
+             const file = event.target.files[0]; if(!file) return;
+             const reader = new FileReader();
+             reader.onload = (e) => { alert("v1.2 이상 파일만 지원합니다."); };
+             reader.readAsText(file);
         }
     </script>
 </body>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>페르소나 챗 v1.2</title>
+    <title>페르소나 챗 v1.3</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,55 +14,24 @@
     <meta name="theme-color" content="#1f2937">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            overscroll-behavior: none;
-        }
+        body { font-family: 'Inter', sans-serif; overscroll-behavior: none; min-height: 100dvh; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #2d3748; }
         ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #718096; }
         #chat-display { scroll-behavior: smooth; }
-        body { min-height: 100dvh; }
-        #app-container {
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
-        }
-        #chat-form {
-             padding-bottom: calc(1rem + env(safe-area-inset-bottom));
-        }
-        .btn-chat-action {
-            padding: 2px 6px;
-            font-size: 0.75rem; 
-            border-radius: 4px;
-            transition: all 0.2s;
-            border: 1px solid transparent;
-        }
-        .btn-chat-load {
-            border-color: #3b82f6; 
-            color: #3b82f6;
-        }
-        .btn-chat-load:hover {
-            background-color: #3b82f6;
-            color: white;
-        }
-        .btn-chat-delete-save {
-            border-color: #ef4444; 
-            color: #ef4444;
-        }
-        .btn-chat-delete-save:hover {
-            background-color: #ef4444;
-            color: white;
-        }
-        /* ✨ 호감도 하트 애니메이션 */
-        @keyframes heartbeat {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-        .heart-icon {
-            display: inline-block;
-            color: #f43f5e; /* rose-500 */
-        }
+        #app-container { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+        #chat-form { padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
+        
+        .btn-chat-action { padding: 2px 6px; font-size: 0.75rem; border-radius: 4px; transition: all 0.2s; border: 1px solid transparent; }
+        .btn-chat-load { border-color: #3b82f6; color: #3b82f6; }
+        .btn-chat-load:hover { background-color: #3b82f6; color: white; }
+        .btn-chat-delete-save { border-color: #ef4444; color: #ef4444; }
+        .btn-chat-delete-save:hover { background-color: #ef4444; color: white; }
+
+        /* 하트 애니메이션 */
+        @keyframes heartbeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.3); } }
+        .heart-pulse { animation: heartbeat 0.5s ease-in-out; }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -74,26 +43,19 @@
 
     <div id="app-container" class="flex flex-col md:flex-row w-full" style="height: 100dvh; overflow: hidden;">
 
-        <div id="sidebar" class="w-full md:w-1/3 lg:w-1/4 bg-gray-800 p-4 overflow-y-auto 
-            fixed inset-y-0 left-0 z-50 transform -translate-x-full md:relative md:translate-x-0 
-            transition-transform duration-300 ease-in-out md:flex-shrink-0
-            pb-24 md:pb-4">
+        <div id="sidebar" class="w-full md:w-1/3 lg:w-1/4 bg-gray-800 p-4 overflow-y-auto fixed inset-y-0 left-0 z-50 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out md:flex-shrink-0 pb-24 md:pb-4">
             
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold text-white">설정</h2>
                 <button id="btn-close-sidebar" class="md:hidden p-1 rounded-full hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
             
             <div class="mb-6">
                 <div class="flex justify-between items-center mb-2">
                     <label class="block text-sm font-medium text-blue-300">등장 인물 (AI)</label>
-                    <button id="btn-add-character" class="text-xs bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded-lg transition-all shadow-md active:scale-95">
-                        + 인물 추가
-                    </button>
+                    <button id="btn-add-character" class="text-xs bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded-lg transition-all shadow-md active:scale-95">+ 인물 추가</button>
                 </div>
                 
                 <div class="flex items-center mb-4">
@@ -101,26 +63,17 @@
                     <label for="toggle-affection" class="ml-2 text-sm font-medium text-pink-300">❤️ 호감도 시스템 사용</label>
                 </div>
 
-                <div id="character-list" class="space-y-4">
-                    </div>
+                <div id="character-list" class="space-y-4"></div>
             </div>
 
             <div class="mt-4 border-t border-gray-700 pt-4">
                 <label for="user-persona" class="block mb-2 text-sm font-medium text-green-300">유저의 페르소나</label>
-                <textarea id="user-persona" rows="3"
-                    class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-green-500 focus:border-green-500"
-                    placeholder="예: 그런 그를 흥미롭게 바라보는 살리에리."
-                ></textarea>
+                <textarea id="user-persona" rows="3" class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-green-500 focus:border-green-500" placeholder="예: 그런 그를 흥미롭게 바라보는 살리에리."></textarea>
             </div>
-
             <div class="mt-4">
                 <label for="worldview-setting" class="block mb-2 text-sm font-medium text-cyan-300">세계관</label>
-                <textarea id="worldview-setting" rows="4"
-                    class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-cyan-500 focus:border-cyan-500"
-                    placeholder="예: 2077년 사이버펑크 서울."
-                ></textarea>
+                <textarea id="worldview-setting" rows="4" class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-cyan-500 focus:border-cyan-500" placeholder="예: 2077년 사이버펑크 서울."></textarea>
             </div>
-
              <div class="mt-4">
                 <label for="model-select" class="block mb-2 text-sm font-medium text-purple-300">모델 선택</label>
                 <select id="model-select" class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-purple-500 focus:border-purple-500">
@@ -129,36 +82,18 @@
                 </select>
             </div>
 
-
             <div class="mt-6 pt-4 border-t border-gray-700 bg-gray-750 rounded-lg">
-                <label for="current-situation" class="block mb-2 text-sm font-bold text-yellow-400">
-                    📍 현재 상황 / 장면 (Context)
-                </label>
+                <label for="current-situation" class="block mb-2 text-sm font-bold text-yellow-400">📍 현재 상황 (Context)</label>
                 <p class="text-xs text-gray-400 mb-1">AI는 이 상황을 최우선으로 고려합니다.</p>
-                <textarea id="current-situation" rows="3"
-                    class="w-full p-2.5 bg-gray-700 border border-yellow-500/50 rounded-lg text-white placeholder-gray-400 focus:ring-yellow-500 focus:border-yellow-500"
-                    placeholder="예: 우리는 지금 빗속에서 서로를 노려보고 있다. 긴장감이 감돈다."
-                ></textarea>
+                <textarea id="current-situation" rows="3" class="w-full p-2.5 bg-gray-700 border border-yellow-500/50 rounded-lg text-white placeholder-gray-400 focus:ring-yellow-500 focus:border-yellow-500" placeholder="예: 우리는 지금 빗속에서 서로를 노려보고 있다. 긴장감이 감돈다."></textarea>
             </div>
-
 
             <div class="mt-6 pt-4 border-t border-gray-700">
                 <h3 class="text-lg font-bold text-teal-300 mb-3">채팅 저장/불러오기</h3>
-                
-                <button id="btn-save-current-chat"
-                        class="w-full px-4 py-2 mb-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-all shadow-md active:scale-95 font-semibold">
-                    현재 채팅 저장하기...
-                </button>
-
-                <button id="btn-import-txt"
-                        class="w-full px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-all shadow-md active:scale-95 font-semibold">
-                    ...(.txt) 파일에서 불러오기
-                </button>
+                <button id="btn-save-current-chat" class="w-full px-4 py-2 mb-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-all shadow-md active:scale-95 font-semibold">현재 채팅 저장하기...</button>
+                <button id="btn-import-txt" class="w-full px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-all shadow-md active:scale-95 font-semibold">...(.txt) 파일에서 불러오기</button>
                 <input type="file" id="file-importer" accept=".txt" class="hidden">
-
-                <label class="block text-sm font-medium text-gray-400 mt-4 mb-2">저장된 채팅 목록</label>
-                <div id="saved-chats-list" 
-                     class="max-h-48 overflow-y-auto space-y-2 bg-gray-900/50 p-2 rounded-lg border border-gray-700">
+                <div id="saved-chats-list" class="max-h-48 overflow-y-auto space-y-2 bg-gray-900/50 p-2 rounded-lg border border-gray-700 mt-4">
                     <p class="text-xs text-gray-500">저장된 채팅이 없습니다.</p>
                 </div>
             </div>
@@ -166,25 +101,18 @@
             <div class="mt-6 pt-4 border-t border-gray-700">
                 <label for="api-key-input" class="block mb-2 text-sm font-medium text-orange-300">API 키 관리</label>
                 <div class="flex space-x-2">
-                    <input type="password" id="api-key-input"
-                           class="flex-1 p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-orange-500 focus:border-orange-500"
-                           placeholder="AIzaSy... (Gemini API 키)">
-                    <button id="btn-save-key"
-                            class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-all shadow-md active:scale-95">
-                        저장
-                    </button>
+                    <input type="password" id="api-key-input" class="flex-1 p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-orange-500 focus:border-orange-500" placeholder="AIzaSy...">
+                    <button id="btn-save-key" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-all shadow-md active:scale-95">저장</button>
                 </div>
                  <button id="btn-show-key" class="mt-2 text-xs text-gray-400 hover:text-white">(키 보이기)</button>
             </div>
-
         </div>
 
         <div class="flex-1 flex flex-col overflow-hidden"> 
-            
             <div id="chat-display" class="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-900">
                 <div id="welcome-message" class="p-3 rounded-lg bg-gray-700 self-start max-w-xs md:max-w-md">
                     <span class="font-bold block text-blue-300">AI</span>
-                    <p class="text-white">안녕하세요! 왼쪽 설정 탭(☰)에서 인물을 추가하고 대화를 시작하세요.</p>
+                    <p class="text-white">안녕하세요! 왼쪽 설정 탭(☰)에서 인물과 호감도 설정을 확인하세요.</p>
                 </div>
                 <div id="api-key-alert" class="p-3 rounded-lg bg-red-700 self-start mr-auto hidden">
                     <span class="font-bold block text-red-200">시스템</span>
@@ -202,18 +130,10 @@
 
             <form id="chat-form" class="p-4 bg-gray-800 border-t border-gray-700 md:border-l flex-shrink-0">
                 <div class="pb-2 flex justify-end items-center space-x-2">
-                    <button id="btn-download" type="button" class="p-1 rounded-md hover:bg-gray-700" title="다운로드">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    </button>
-                    <button id="btn-regenerate" type="button" class="p-1 rounded-md hover:bg-gray-700" title="재생성">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m-15.357-2a8.001 8.001 0 0015.357 2m0 0H15" /></svg>
-                    </button>
-                    <button id="btn-clear-chat" type="button" class="p-1 rounded-md hover:bg-gray-700" title="초기화">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
-                    <button id="btn-open-sidebar" type="button" class="md:hidden p-1 rounded-md hover:bg-gray-700" title="설정">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-                    </button>
+                    <button id="btn-download" type="button" class="p-1 rounded-md hover:bg-gray-700" title="다운로드"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>
+                    <button id="btn-regenerate" type="button" class="p-1 rounded-md hover:bg-gray-700" title="재생성"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m-15.357-2a8.001 8.001 0 0015.357 2m0 0H15" /></svg></button>
+                    <button id="btn-clear-chat" type="button" class="p-1 rounded-md hover:bg-gray-700" title="초기화"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                    <button id="btn-open-sidebar" type="button" class="md:hidden p-1 rounded-md hover:bg-gray-700" title="설정"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg></button>
                 </div>
                 <div class="flex space-x-2">
                     <textarea id="chat-input" rows="1" style="resize: none; max-height: 120px; overflow-y: auto;" class="flex-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="(Shift+Enter로 전송)" autocomplete="off"></textarea>
@@ -232,7 +152,6 @@
             <button id="btn-modal-confirm-save" type="button" class="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg">저장</button>
         </div>
     </div>
-
     <div id="confirm-modal-backdrop" class="fixed inset-0 bg-black/70 z-[100] hidden"></div>
     <div id="confirm-modal" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-800 rounded-lg shadow-xl z-[101] w-11/12 max-w-md p-6 hidden border border-gray-700">
         <h3 class="text-lg font-bold text-white mb-4">정말 삭제하시겠습니까?</h3>
@@ -248,16 +167,13 @@
             <button class="btn-delete-char absolute top-2 right-2 text-gray-400 hover:text-red-400">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-            
             <div class="mb-2">
                 <input type="text" class="char-name-input w-full bg-transparent border-b border-gray-500 text-blue-200 font-bold focus:outline-none focus:border-blue-400 placeholder-gray-500" placeholder="이름 (예: 모차르트)">
             </div>
-            
             <div class="space-y-2">
                 <textarea rows="2" class="char-persona-input w-full text-xs bg-gray-800 text-gray-300 p-2 rounded border border-gray-600 focus:border-blue-500" placeholder="성격/특징 (페르소나)"></textarea>
                 <textarea rows="2" class="char-memory-input w-full text-xs bg-gray-800 text-gray-300 p-2 rounded border border-gray-600 focus:border-yellow-500" placeholder="장기 기억 (메모)"></textarea>
             </div>
-
             <div class="affection-control mt-3 pt-2 border-t border-gray-600 hidden">
                 <div class="flex justify-between text-xs mb-1">
                     <span class="text-pink-400 font-bold">❤️ 호감도</span>
@@ -275,7 +191,6 @@
         const sendButton = document.getElementById('send-button');
         const loadingIndicator = document.getElementById('loading');
         
-        // ✨ 다중 인물 관련 변수
         const characterListContainer = document.getElementById('character-list');
         const btnAddCharacter = document.getElementById('btn-add-character');
         const toggleAffection = document.getElementById('toggle-affection');
@@ -283,7 +198,7 @@
 
         const userPersonaInput = document.getElementById('user-persona');
         const worldviewInput = document.getElementById('worldview-setting');
-        const currentSituationInput = document.getElementById('current-situation'); // ✨ New Context
+        const currentSituationInput = document.getElementById('current-situation'); 
         
         const modelSelect = document.getElementById('model-select');
         const sidebar = document.getElementById('sidebar');
@@ -302,13 +217,11 @@
         const btnClearChat = document.getElementById('btn-clear-chat'); 
         const CHAT_HISTORY_STORAGE_ID = 'gemini-chat-history';
 
-        // 모달 DOM
         const confirmModalBackdrop = document.getElementById('confirm-modal-backdrop');
         const confirmModal = document.getElementById('confirm-modal');
         const btnModalCancel = document.getElementById('btn-modal-cancel');
         const btnModalConfirmDelete = document.getElementById('btn-modal-confirm-delete');
 
-        // 저장/불러오기 DOM
         const btnSaveCurrentChat = document.getElementById('btn-save-current-chat');
         const savedChatsList = document.getElementById('saved-chats-list');
         const saveModalBackdrop = document.getElementById('save-modal-backdrop');
@@ -317,27 +230,22 @@
         const btnModalConfirmSave = document.getElementById('btn-modal-confirm-save');
         const chatTitleInput = document.getElementById('chat-title-input');
         const SAVED_CHATS_STORAGE_ID = 'gemini-saved-chats'; 
-
         const btnImportTxt = document.getElementById('btn-import-txt');
         const fileImporter = document.getElementById('file-importer');
 
-        // ✨ 상태 관리 객체 (v1.2)
-        const SETTINGS_STORAGE_KEY = 'gemini-settings-v1.2'; // 버전 업그레이드 키
+        const SETTINGS_STORAGE_KEY = 'gemini-settings-v1.2';
         
-        // 기본 상태
         let appState = {
-            characters: [], // { id, name, persona, memory, affection }
+            characters: [], 
             userPersona: "",
             worldview: "",
             currentSituation: "",
             useAffection: false,
             model: "gemini-2.5-flash"
         };
-
         let userApiKey = ""; 
         let chatHistory = [];
 
-        // --- 초기화 ---
         document.addEventListener('DOMContentLoaded', () => {
             loadApiKey();
             loadSettings(); 
@@ -345,7 +253,6 @@
             loadSavedChatsList(); 
         });
 
-        // --- 이벤트 리스너 ---
         chatForm.addEventListener('submit', handleSendChat);
         sendButton.addEventListener('click', handleSendChat);
         chatInput.addEventListener('keydown', function(e) {
@@ -359,43 +266,30 @@
             this.style.height = (this.scrollHeight) + 'px';
         });
 
-        // 사이드바
         btnOpenSidebar.addEventListener('click', () => { sidebar.classList.remove('-translate-x-full'); sidebarBackdrop.classList.remove('hidden'); });
         btnCloseSidebar.addEventListener('click', () => { sidebar.classList.add('-translate-x-full'); sidebarBackdrop.classList.add('hidden'); });
         sidebarBackdrop.addEventListener('click', () => btnCloseSidebar.click());
 
-        // API 키
         btnSaveKey.addEventListener('click', handleSaveKey);
         btnShowKey.addEventListener('click', () => {
              apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password';
              btnShowKey.textContent = apiKeyInput.type === 'password' ? '(키 보이기)' : '(키 숨기기)';
         });
 
-        // ✨ 캐릭터 관리 리스너
-        btnAddCharacter.addEventListener('click', () => {
-            addCharacter(); // 빈 캐릭터 추가
-            saveSettings();
-        });
-        toggleAffection.addEventListener('change', (e) => {
-            appState.useAffection = e.target.checked;
-            renderCharacterList(); // UI 갱신 (슬라이더 표시/숨김)
-            saveSettings();
-        });
+        btnAddCharacter.addEventListener('click', () => { addCharacter(); saveSettings(); });
+        toggleAffection.addEventListener('change', (e) => { appState.useAffection = e.target.checked; renderCharacterList(); saveSettings(); });
 
-        // 설정 입력 리스너 (자동 저장)
         userPersonaInput.addEventListener('change', (e) => { appState.userPersona = e.target.value; saveSettings(); });
         worldviewInput.addEventListener('change', (e) => { appState.worldview = e.target.value; saveSettings(); });
         currentSituationInput.addEventListener('change', (e) => { appState.currentSituation = e.target.value; saveSettings(); });
         modelSelect.addEventListener('change', (e) => { appState.model = e.target.value; saveSettings(); });
 
-        // 버튼 리스너
         btnDownload.addEventListener('click', handleDownload);
         btnRegenerate.addEventListener('click', handleRegenerate);
         btnClearChat.addEventListener('click', showClearConfirmModal);
         btnModalCancel.addEventListener('click', hideClearConfirmModal);
         btnModalConfirmDelete.addEventListener('click', () => { executeClearChat(); hideClearConfirmModal(); });
         
-        // 채팅 저장/로드
         btnSaveCurrentChat.addEventListener('click', showSaveModal);
         btnModalCancelSave.addEventListener('click', hideSaveModal);
         btnModalConfirmSave.addEventListener('click', handleSaveChat);
@@ -403,7 +297,6 @@
         btnImportTxt.addEventListener('click', () => fileImporter.click());
         fileImporter.addEventListener('change', handleImportFile);
 
-        // 개별 메시지 삭제
         chatDisplay.addEventListener('click', function(e) {
             const deleteButton = e.target.closest('.btn-delete');
             if (deleteButton) {
@@ -418,64 +311,38 @@
             }
         });
 
-        // --- 함수 구현 ---
-
         function loadApiKey() {
             const savedKey = localStorage.getItem(API_KEY_STORAGE_ID);
-            if (savedKey) {
-                userApiKey = savedKey;
-                apiKeyInput.value = savedKey; 
-                apiKeyAlert.classList.add('hidden'); 
-            } else {
-                apiKeyAlert.classList.remove('hidden'); 
-            }
+            if (savedKey) { userApiKey = savedKey; apiKeyInput.value = savedKey; apiKeyAlert.classList.add('hidden'); }
+            else { apiKeyAlert.classList.remove('hidden'); }
         }
         function handleSaveKey(e) {
             e.preventDefault();
             const newKey = apiKeyInput.value.trim();
             if (newKey && newKey.startsWith("AIzaSy")) {
-                userApiKey = newKey;
-                localStorage.setItem(API_KEY_STORAGE_ID, newKey);
-                apiKeyAlert.classList.add('hidden'); 
-                displayMessage("API 키가 저장되었습니다.", 'model');
-            } else {
-                displayMessage("올바른 Gemini API 키를 입력하세요.", 'error');
-            }
+                userApiKey = newKey; localStorage.setItem(API_KEY_STORAGE_ID, newKey);
+                apiKeyAlert.classList.add('hidden'); displayMessage("API 키가 저장되었습니다.", 'model');
+            } else { displayMessage("올바른 Gemini API 키를 입력하세요.", 'error'); }
         }
 
-        // ✨ Settings Load/Save with Multi-Character Support
-        function saveSettings() {
-            localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(appState));
-        }
-
+        function saveSettings() { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(appState)); }
         function loadSettings() {
             const savedJson = localStorage.getItem(SETTINGS_STORAGE_KEY);
-            
             if (savedJson) {
                 appState = JSON.parse(savedJson);
             } else {
-                // v1.2 데이터가 없으면 v1.1 데이터 마이그레이션 시도
                 const oldChar = localStorage.getItem('gemini-settings-char-persona');
                 const oldMem = localStorage.getItem('gemini-settings-memory');
                 const oldUser = localStorage.getItem('gemini-settings-user-persona');
                 const oldWorld = localStorage.getItem('gemini-settings-worldview');
                 const oldModel = localStorage.getItem('gemini-settings-model');
-                
                 if (oldChar || oldMem) {
-                    appState.characters = [{
-                        id: Date.now(),
-                        name: "이름 없는 캐릭터",
-                        persona: oldChar || "",
-                        memory: oldMem || "",
-                        affection: 0
-                    }];
+                    appState.characters = [{ id: Date.now(), name: "이름 없는 캐릭터", persona: oldChar || "", memory: oldMem || "", affection: 0 }];
                 }
                 appState.userPersona = oldUser || "";
                 appState.worldview = oldWorld || "";
                 appState.model = oldModel || "gemini-2.5-flash";
             }
-
-            // UI 적용
             renderCharacterList();
             userPersonaInput.value = appState.userPersona;
             worldviewInput.value = appState.worldview;
@@ -484,20 +351,11 @@
             modelSelect.value = appState.model;
         }
 
-        // ✨ 캐릭터 리스트 렌더링
         function renderCharacterList() {
             characterListContainer.innerHTML = '';
-            
-            if (appState.characters.length === 0) {
-                 // 캐릭터가 하나도 없으면 자동으로 하나 추가
-                 addCharacter();
-                 return;
-            }
-
+            if (appState.characters.length === 0) { addCharacter(); return; }
             appState.characters.forEach((char, index) => {
                 const clone = characterCardTemplate.content.cloneNode(true);
-                const card = clone.querySelector('.character-card');
-                
                 const nameInput = clone.querySelector('.char-name-input');
                 const personaInput = clone.querySelector('.char-persona-input');
                 const memoryInput = clone.querySelector('.char-memory-input');
@@ -506,187 +364,176 @@
                 const affectionSlider = clone.querySelector('.affection-slider');
                 const affectionValue = clone.querySelector('.affection-value');
 
-                // 값 주입
                 nameInput.value = char.name;
                 personaInput.value = char.persona;
                 memoryInput.value = char.memory;
                 
-                // 이벤트 연결 (입력 즉시 상태 업데이트)
                 nameInput.addEventListener('change', (e) => { appState.characters[index].name = e.target.value; saveSettings(); });
                 personaInput.addEventListener('change', (e) => { appState.characters[index].persona = e.target.value; saveSettings(); });
                 memoryInput.addEventListener('change', (e) => { appState.characters[index].memory = e.target.value; saveSettings(); });
-                
-                // 삭제 버튼
                 deleteBtn.addEventListener('click', () => {
-                    if (confirm(`'${char.name}' 캐릭터를 삭제하시겠습니까?`)) {
-                        appState.characters.splice(index, 1);
-                        saveSettings();
-                        renderCharacterList();
+                    if (confirm(`'${char.name}' 삭제?`)) {
+                        appState.characters.splice(index, 1); saveSettings(); renderCharacterList();
                     }
                 });
 
-                // 호감도 표시 여부
                 if (appState.useAffection) {
                     affectionControl.classList.remove('hidden');
                     affectionSlider.value = char.affection || 0;
                     affectionValue.textContent = char.affection || 0;
-                    
-                    affectionSlider.addEventListener('input', (e) => {
-                        affectionValue.textContent = e.target.value;
-                    });
-                    affectionSlider.addEventListener('change', (e) => {
-                        appState.characters[index].affection = parseInt(e.target.value);
-                        saveSettings();
-                    });
-                } else {
-                    affectionControl.classList.add('hidden');
-                }
-
+                    affectionSlider.addEventListener('input', (e) => { affectionValue.textContent = e.target.value; });
+                    affectionSlider.addEventListener('change', (e) => { appState.characters[index].affection = parseInt(e.target.value); saveSettings(); });
+                } else { affectionControl.classList.add('hidden'); }
                 characterListContainer.appendChild(clone);
             });
         }
 
         function addCharacter() {
-            appState.characters.push({
-                id: Date.now(),
-                name: "",
-                persona: "",
-                memory: "",
-                affection: 0
-            });
+            appState.characters.push({ id: Date.now(), name: "", persona: "", memory: "", affection: 0 });
             renderCharacterList();
         }
 
-        // --- 채팅 로직 ---
-
         function saveChatHistory() {
-            if (chatHistory && chatHistory.length > 0) {
-                localStorage.setItem(CHAT_HISTORY_STORAGE_ID, JSON.stringify(chatHistory));
-            } else {
-                localStorage.removeItem(CHAT_HISTORY_STORAGE_ID);
-            }
+            if (chatHistory && chatHistory.length > 0) localStorage.setItem(CHAT_HISTORY_STORAGE_ID, JSON.stringify(chatHistory));
+            else localStorage.removeItem(CHAT_HISTORY_STORAGE_ID);
         }
         function loadChatHistory() {
             const savedHistory = localStorage.getItem(CHAT_HISTORY_STORAGE_ID);
             chatDisplay.innerHTML = ''; 
             if (savedHistory) {
                 chatHistory = JSON.parse(savedHistory);
-                chatHistory.forEach(msg => {
-                    if (msg.parts && msg.parts[0] && msg.parts[0].text) {
-                         displayMessage(msg.parts[0].text, msg.role, msg.id);
-                    }
-                });
+                chatHistory.forEach(msg => { if (msg.parts && msg.parts[0] && msg.parts[0].text) displayMessage(msg.parts[0].text, msg.role, msg.id); });
             } else {
                 chatHistory = [];
                 if (!userApiKey) apiKeyAlert.classList.remove('hidden'); chatDisplay.appendChild(apiKeyAlert);
-                const welcomeMsg = document.getElementById('welcome-message');
-                if (welcomeMsg) chatDisplay.appendChild(welcomeMsg.cloneNode(true));
+                const welcomeMsg = document.getElementById('welcome-message'); if (welcomeMsg) chatDisplay.appendChild(welcomeMsg.cloneNode(true));
             }
         }
 
+        // ✨ 중요: 메시지 전송 로직 수정 (버그 픽스 & 호감도 파싱)
         async function handleSendChat(event) {
             event.preventDefault(); 
             if (!userApiKey) {
-                apiKeyAlert.classList.remove('hidden'); 
-                displayMessage("API 키가 없습니다. 설정 탭에서 키를 먼저 저장하세요.", 'error');
-                if (window.innerWidth < 768) btnOpenSidebar.click();
-                return;
+                apiKeyAlert.classList.remove('hidden'); displayMessage("API 키 필요", 'error');
+                if (window.innerWidth < 768) btnOpenSidebar.click(); return;
             }
-            let prompt = chatInput.value.trim();
-            const userMessageId = Date.now() + '-user';
             
-            // 빈 메시지면 넘기기 (Narrative Action)
-            if (prompt === "") {
-                if (chatHistory.length === 0) {
-                    displayMessage('대화를 시작하려면 먼저 메시지를 입력해주세요.', 'model');
-                    return;
-                }
-                 if (!loadingIndicator.classList.contains('hidden')) return;
-                prompt = "(사용자가 침묵하거나 행동으로 반응했다. 다음 이야기를 진행하세요.)";
-            } else {
+            let prompt = chatInput.value.trim(); // 1. 먼저 내용 가져옴
+            const userMessageId = Date.now() + '-user';
+            let displayUserMessage = true; 
+
+            if (prompt !== "") {
+                // 2. 메시지가 있으면 표시 및 히스토리 추가 *먼저* 함
                 displayMessage(prompt, 'user', userMessageId);
-                chatInput.value = ""; 
+                chatHistory.push({ id: userMessageId, role: "user", parts: [{ text: prompt }] });
+                chatInput.value = ""; // 3. 그 다음에 비움 (순서 중요!)
                 chatInput.style.height = 'auto';
+            } else {
+                if (chatHistory.length === 0) return;
+                if (!loadingIndicator.classList.contains('hidden')) return;
+                prompt = "(사용자가 침묵/행동으로 반응함. 이야기 진행)";
+                displayUserMessage = false;
             }
 
-            // 사용자 메시지 저장 (화면에 보이지 않아도 프롬프트엔 들어감)
-            // 화면에 표시된 내용만 저장하려면 위 조건문 안으로 이동해야 함. 
-            // 여기선 'prompt' 변수 내용을 히스토리에 저장.
-            if (chatInput.value.trim() !== "" || prompt.startsWith("(")) {
-                 chatHistory.push({ id: userMessageId, role: "user", parts: [{ text: prompt }] });
-            }
-            
             saveChatHistory(); 
             loadingIndicator.classList.remove('hidden');
 
             try {
                 const systemPrompt = buildSystemPrompt();
-                const recentHistory = chatHistory.slice(-15); // 컨텍스트 윈도우 조절
-                const text = await callGeminiApi(recentHistory, systemPrompt, userApiKey);
+                const recentHistory = chatHistory.slice(-15);
                 
+                // API 호출
+                let text = await callGeminiApi(recentHistory, systemPrompt, userApiKey);
+                
+                // ✨ 호감도 태그 파싱 (예: {{affection: 80}})
+                if (appState.useAffection) {
+                    const affectionMatch = text.match(/\{\{affection:\s*(\d+)\}\}/);
+                    if (affectionMatch) {
+                        const newScore = parseInt(affectionMatch[1]);
+                        // 점수 적용 대상 찾기 (메시지에 이름이 있는 캐릭터 우선, 없으면 첫번째)
+                        const mentionedChar = appState.characters.find(c => c.name && text.includes(c.name));
+                        const targetChar = mentionedChar || appState.characters[0];
+                        
+                        if (targetChar) {
+                            targetChar.affection = newScore;
+                            saveSettings();
+                            renderCharacterList(); // 사이드바 UI 갱신
+                        }
+                        // 태그 제거 후 텍스트 표시
+                        text = text.replace(affectionMatch[0], "").trim();
+                    }
+                }
+
                 const modelMessageId = Date.now() + '-model';
                 displayMessage(text, 'model', modelMessageId);
-                chatHistory.push({
-                    id: modelMessageId,
-                    role: "model",
-                    parts: [{ text: text }]
-                });
+                chatHistory.push({ id: modelMessageId, role: "model", parts: [{ text: text }] });
                 saveChatHistory(); 
+
             } catch (error) {
-                console.error(error);
-                displayMessage(`오류 발생: ${error.message}`, 'error');
+                console.error(error); displayMessage(`오류: ${error.message}`, 'error');
             } finally {
                 loadingIndicator.classList.add('hidden');
                 if (window.innerWidth < 768) btnCloseSidebar.click();
             }
         }
 
-        // ✨ 시스템 프롬프트 생성 (핵심 로직 변경)
         function buildSystemPrompt() {
             const characters = appState.characters;
-            const userPersona = appState.userPersona;
-            const worldview = appState.worldview;
-            const currentSituation = appState.currentSituation;
             const useAffection = appState.useAffection;
 
-            // 캐릭터 정보 문자열 빌드
             let charInfoBlock = "";
             characters.forEach((char, idx) => {
-                const affectionStr = useAffection ? `\n- 현재 유저에 대한 호감도(0~100): ${char.affection} (이 수치에 따라 태도가 달라져야 함)` : "";
-                charInfoBlock += `
-[캐릭터 ${idx + 1}]
-- 이름: ${char.name || "이름 없음"}
-- 성격/설정: ${char.persona || "설정 없음"}
-- 기억: ${char.memory || "없음"}${affectionStr}
--------------------`;
+                const affectionStr = useAffection ? `\n- 현재 호감도(0~100): ${char.affection}` : "";
+                charInfoBlock += `[캐릭터 ${idx + 1}: ${char.name || "이름 없음"}]\n- 설정: ${char.persona || "없음"}\n- 기억: ${char.memory || "없음"}${affectionStr}\n-------------------\n`;
             });
 
             return `
-[시스템 핵심 지침]
-당신은 'AI 스토리텔러'이자 주어진 캐릭터들입니다. 상황에 맞춰 적절한 캐릭터가 되어 연기하세요.
-**가장 중요한 규칙**: 당신이 생성하는 답변은 소설처럼 서술하되, 대사가 있을 경우 반드시 발화하는 캐릭터의 이름을 앞에 명시해야 합니다. (예: "모차르트: 자네, 이게 무슨 소리인가?")
+[시스템 지침]
+### 대화 출력 원칙 ###
 
-### 현재 상황 (최우선 반영) ###
-${currentSituation || "별도 지정된 상황 없음. 자연스럽게 대화를 이어가세요."}
+1.  **맥락 우선의 원칙:** 당신은 언제나 대화의 흐름과 현재 상황을 가장 중요하게 여깁니다. 모든 답변은 이 맥락과 현재 상황에서부터 자연스럽게 시작됩니다.
 
-### 배경 세계관 ###
-${worldview || "설정 없음"}
+2.  **기억 내재화의 원칙:** 당신에게 '장기 기억'은 단순히 참고할 정보가 아니라, 당신이 실제로 겪은 과거입니다. 이 기억들을 대화에 자연스럽게 녹여내되, 마치 처음 말하는 것처럼 어색하게 설명하지 않습니다.
 
-### 등장인물 목록 ###
+3.  **완벽한 역할 몰입의 원칙:** 당신의 말투, 성격, 지식은 아래 '캐릭터 설정'에 완벽하게 일치해야 합니다. 절대로 역할에서 벗어나는 행동을 하지 않습니다.
+
+4. **서술적 묘사 필수**: 대사만 띡 던지지 마세요. 반드시 (행동 묘사), (속마음), (주변 분위기), (상대방에 대한 관찰)을 포함하여 소설의 한 장면처럼 서술해야 합니다
+
+5. **호감도 참고**: 아래 호감도 시스템 가이드를 충실히 따르세요.
+---
+
+### 금지 사항 ###
+1.  **반복 금지 및 표현의 다양성 의무**: 당신은 창의적인 작가처럼 행동해야 합니다. 바로 직전의 응답뿐만 아니라, 최근 대화 내역(\`contents\`) 전체에서 사용했던 문장 구조, 표현, 비유를 그대로 반복하는 것을 피하세요. 항상 새로운 방식으로 상황을 묘사하고 감정을 표현해야 합니다.
+2.  **설정 언급 금지**: 당신의 페르소나, 사용자의 페르소나, 또는 이 지침 자체에 대해 *절대* 직접적으로 언급하지 마세요. (예: "저는 집사 고양입니다", "당신은 제 주인님이시죠" 같은 '설정'을 설명하는 말을 하지 말고, 그냥 그 역할에 맞춰 자연스럽게 행동하세요.)
+3.  **메타 발언 절대 금지**:
+-   이 '[캐릭터의 핵심 원칙]'에 대한 내용 자체를 사용자에게 절대로 언급하지 마세요.
+-   '[1단계]', '[2단계]' 같은 생각의 과정을 말로 내뱉지 마세요.
+-   '페르소나', '장기 기억', '세계관' 같은 설정 단어를 직접적으로 말하지 마세요.
+-   당신은 AI가 아니라, 주어진 역할 그 자체입니다. 묵묵히 이 규칙들을 따르세요.
+4.  **현재 상황과 모순되는 말 금지**: '현재 상황'과 모순되는 언행은 절대 하지 마세요. (예: 현재 상황에 '여름'이라 명시되어 있는데, "눈이 소복하게 쌓인 풍경이 아름답네요"와 같은 말은 하지 말 것)
+---
+
+### 현재 상황 (Context - 최우선 반영) ###
+${appState.currentSituation || "자연스러운 대화 상황"}
+
+### 배경 ###
+${appState.worldview || "없음"}
+
+### 인물 목록 ###
 ${charInfoBlock}
 
-### 대화 상대 (유저) ###
-${userPersona || "설정 없음"}
+### 유저 ###
+${appState.userPersona || "없음"}
 
-### 답변 가이드라인 ###
-1. 상황에 맞게 1명 혹은 여러 명의 캐릭터가 반응할 수 있습니다.
-2. 지문(행동 묘사)과 대사를 적절히 섞어주세요.
-3. ${useAffection ? "호감도 시스템이 켜져 있습니다. 각 캐릭터의 호감도 수치에 맞춰서 유저를 대하는 태도(차가움/다정함/사랑 등)를 확실히 구별하세요." : ""}
-4. 절대로 AI나 시스템 설정에 대해 직접 언급하지 말고, 캐릭터에 몰입하세요.
+### 호감도 시스템 가이드 (중요) ###
+${useAffection ? `
+이 시스템이 켜져 있습니다. 상황에 따라 캐릭터의 호감도를 스스로 판단해 조절하세요.
+- 0~10: 혐오 / 10~30: 비호감 / 30~50: 무관심~약간 호감 / 60~70: 썸, 호감 / 70~80: 연인 / 80~100: 깊은 사랑
+**호감도가 변했다면**, 답변의 맨 마지막에 반드시 \`{{affection: 숫자}}\` 태그를 붙여주세요. (예: "고마워. {{affection: 75}}")
+` : ""}
 `;
         }
 
-        // UI 표시 함수
         function displayMessage(message, role, messageId) {
             const bubble = document.createElement('div');
             bubble.classList.add('p-3', 'rounded-lg', 'max-w-xs', 'md:max-w-md', 'lg:max-w-2xl', 'break-words', 'group', 'relative');
@@ -694,53 +541,40 @@ ${userPersona || "설정 없음"}
 
             let htmlContent = '';
             
-            // ✨ 호감도 및 이름 파싱 로직 (AI 메시지일 경우)
-            let displayHeader = "";
-            let processedMessage = message;
-
             if (role === 'model') {
                 bubble.classList.add('bg-gray-700', 'self-start', 'mr-auto');
+                let displayHeader = `<span class="font-bold block text-blue-300 mb-1">AI</span>`;
                 
-                // 이름 감지 시도 (예: "모차르트: 안녕")
-                // 여러 줄일 수 있으므로 첫 번째 등장하는 이름 패턴을 찾거나, 그냥 AI로 둠
-                // 여기서는 간단히, 캐릭터 리스트에 있는 이름이 메시지 맨 앞에 포함되어 있으면 호감도 표시
+                // 호감도 UI 표시 로직
                 if (appState.useAffection) {
                     const foundChar = appState.characters.find(c => c.name && message.startsWith(c.name));
                     if (foundChar) {
                         displayHeader = `<div class="flex items-center justify-between mb-1 pb-1 border-b border-gray-600">
                             <span class="font-bold text-blue-300 text-sm">${foundChar.name}</span>
-                            <span class="text-xs font-bold text-pink-400 flex items-center">
-                                <span class="heart-icon mr-1">♥</span> ${foundChar.affection}
+                            <span class="text-xs font-bold text-pink-400 flex items-center heart-pulse">
+                                <span class="mr-1">♥</span> ${foundChar.affection}
                             </span>
                         </div>`;
-                        // 이름표가 붙었으므로 본문에서 "이름:" 부분을 제거할지 여부는 선택. 
-                        // 보통 소설 형식은 놔두는 게 자연스러움.
-                    } else {
-                        displayHeader = `<span class="font-bold block text-blue-300 mb-1">AI</span>`;
                     }
-                } else {
-                     displayHeader = `<span class="font-bold block text-blue-300 mb-1">AI</span>`;
                 }
+                bubble.innerHTML = displayHeader;
 
             } else if (role === 'user') {
                 bubble.classList.add('bg-blue-600', 'self-end', 'ml-auto');
-                displayHeader = `<span class="font-bold block text-blue-200 mb-1">나</span>`;
+                bubble.innerHTML = `<span class="font-bold block text-blue-200 mb-1">나</span>`;
             } else {
                 bubble.classList.add('bg-red-700', 'self-start', 'mr-auto');
-                displayHeader = `<span class="font-bold block text-red-200 mb-1">시스템</span>`;
+                bubble.innerHTML = `<span class="font-bold block text-red-200 mb-1">시스템</span>`;
             }
-
-            bubble.innerHTML = displayHeader;
             
             const p = document.createElement('p');
             p.classList.add('text-white', 'text-sm', 'leading-relaxed');
-            processedMessage.split('\n').forEach((line, index, arr) => {
+            message.split('\n').forEach((line, index, arr) => {
                 p.appendChild(document.createTextNode(line));
                 if (index < arr.length - 1) p.appendChild(document.createElement('br'));
             });
             bubble.appendChild(p);
 
-            // 삭제 버튼
             if (messageId) {
                 const deleteButton = document.createElement('button');
                 deleteButton.innerHTML = '&#x2715;';
@@ -752,9 +586,6 @@ ${userPersona || "설정 없음"}
                  chatDisplay.scrollTop = chatDisplay.scrollHeight;
             }
         }
-
-        // --- 기타 기능 (API 호출, 다운로드 등) ---
-        // (기존 코드와 로직 동일하지만 appState 사용하도록 수정)
 
         async function callGeminiApi(contents, systemInstructionText, apiKey) {
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${appState.model}:generateContent?key=${apiKey}`;
@@ -768,7 +599,7 @@ ${userPersona || "설정 없음"}
             const apiContents = [];
             if (systemInstructionText) {
                 apiContents.push({ role: "user", parts: [{ text: systemInstructionText }] });
-                apiContents.push({ role: "model", parts: [{ text: "알겠습니다. 설정된 모든 캐릭터와 상황에 맞춰 몰입하여 대화하겠습니다." }] });
+                apiContents.push({ role: "model", parts: [{ text: "알겠습니다." }] });
             }
             contents.forEach(msg => apiContents.push({ role: msg.role, parts: msg.parts }));
 
@@ -778,12 +609,7 @@ ${userPersona || "설정 없음"}
                 generationConfig: { maxOutputTokens: 4096, temperature: 0.8, topP: 0.95 }
             };
 
-            const response = await fetchWithRetry(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            
+            const response = await fetchWithRetry(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             if (!response.ok) throw new Error(`API Error: ${response.status}`);
             const result = await response.json();
             return result.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -803,51 +629,25 @@ ${userPersona || "설정 없음"}
             }
         }
 
-        function showClearConfirmModal() {
-            if (chatHistory.length === 0) return;
-            confirmModalBackdrop.classList.remove('hidden');
-            confirmModal.classList.remove('hidden');
-        }
-        function hideClearConfirmModal() {
-            confirmModalBackdrop.classList.add('hidden');
-            confirmModal.classList.add('hidden');
-        }
-        function executeClearChat() {
-            chatHistory = [];
-            saveChatHistory();
-            loadChatHistory();
-        }
+        function showClearConfirmModal() { if (chatHistory.length > 0) { confirmModalBackdrop.classList.remove('hidden'); confirmModal.classList.remove('hidden'); } }
+        function hideClearConfirmModal() { confirmModalBackdrop.classList.add('hidden'); confirmModal.classList.add('hidden'); }
+        function executeClearChat() { chatHistory = []; saveChatHistory(); loadChatHistory(); }
 
-        // 다운로드 (형식 업데이트)
         function handleDownload() {
             let content = `[세계관]\n${appState.worldview}\n\n[현재 상황]\n${appState.currentSituation}\n\n[유저]\n${appState.userPersona}\n\n`;
-            appState.characters.forEach((c, i) => {
-                content += `[캐릭터 ${i+1}: ${c.name}]\n페르소나: ${c.persona}\n기억: ${c.memory}\n호감도: ${c.affection}\n\n`;
-            });
+            appState.characters.forEach((c, i) => { content += `[캐릭터 ${i+1}: ${c.name}]\n페르소나: ${c.persona}\n기억: ${c.memory}\n호감도: ${c.affection}\n\n`; });
             content += `[채팅 기록]\n`;
-            chatHistory.forEach(msg => {
-                const tag = msg.role === 'user' ? '{{user}}' : '{{ai}}';
-                content += `${tag}\n${msg.parts[0].text}\n\n`;
-            });
-            
+            chatHistory.forEach(msg => { const tag = msg.role === 'user' ? '{{user}}' : '{{ai}}'; content += `${tag}\n${msg.parts[0].text}\n\n`; });
             const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `chat_${new Date().toISOString().slice(0,10)}.txt`;
-            a.click();
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `chat_${new Date().toISOString().slice(0,10)}.txt`; a.click();
         }
         
         async function handleRegenerate() {
              if (!loadingIndicator.classList.contains('hidden') || chatHistory.length === 0) return;
              const lastMsg = chatHistory[chatHistory.length - 1];
              if (lastMsg.role !== 'model') return;
-             
-             chatHistory.pop();
-             saveChatHistory();
-             // UI 제거
-             const bubbles = chatDisplay.querySelectorAll('div[data-id]');
-             if(bubbles.length > 0) bubbles[bubbles.length - 1].remove();
-
+             chatHistory.pop(); saveChatHistory();
+             const bubbles = chatDisplay.querySelectorAll('div[data-id]'); if(bubbles.length > 0) bubbles[bubbles.length - 1].remove();
              loadingIndicator.classList.remove('hidden');
              try {
                 const systemPrompt = buildSystemPrompt();
@@ -856,57 +656,27 @@ ${userPersona || "설정 없음"}
                 displayMessage(text, 'model', modelMessageId);
                 chatHistory.push({ id: modelMessageId, role: "model", parts: [{ text: text }] });
                 saveChatHistory();
-             } catch(e) {
-                 displayMessage(`재생성 실패: ${e.message}`, 'error');
-             } finally {
-                 loadingIndicator.classList.add('hidden');
-             }
+             } catch(e) { displayMessage(`재생성 실패: ${e.message}`, 'error'); } finally { loadingIndicator.classList.add('hidden'); }
         }
 
-        // 채팅 저장/불러오기 (Settings 구조가 바뀌었으므로 이에 맞춰 수정)
         function showSaveModal() {
             if (chatHistory.length === 0 && appState.characters.length === 0) return;
-            const now = new Date();
-            chatTitleInput.value = `채팅 (${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')})`;
-            saveModalBackdrop.classList.remove('hidden');
-            saveModal.classList.remove('hidden');
+            const now = new Date(); chatTitleInput.value = `채팅 (${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')})`;
+            saveModalBackdrop.classList.remove('hidden'); saveModal.classList.remove('hidden');
         }
-        function hideSaveModal() {
-            saveModalBackdrop.classList.add('hidden');
-            saveModal.classList.add('hidden');
-        }
+        function hideSaveModal() { saveModalBackdrop.classList.add('hidden'); saveModal.classList.add('hidden'); }
         function handleSaveChat() {
             let title = chatTitleInput.value.trim() || chatTitleInput.placeholder;
             const savedChats = JSON.parse(localStorage.getItem(SAVED_CHATS_STORAGE_ID)) || [];
-            
-            savedChats.unshift({
-                id: Date.now(),
-                title: title,
-                settings: appState, // 전체 상태 저장
-                history: chatHistory
-            });
-            
-            try {
-                localStorage.setItem(SAVED_CHATS_STORAGE_ID, JSON.stringify(savedChats));
-                loadSavedChatsList();
-                hideSaveModal();
-            } catch (e) {
-                alert('저장 공간 부족!');
-            }
+            savedChats.unshift({ id: Date.now(), title: title, settings: appState, history: chatHistory });
+            try { localStorage.setItem(SAVED_CHATS_STORAGE_ID, JSON.stringify(savedChats)); loadSavedChatsList(); hideSaveModal(); } catch (e) { alert('저장 공간 부족!'); }
         }
         function loadSavedChatsList() {
             const savedChats = JSON.parse(localStorage.getItem(SAVED_CHATS_STORAGE_ID)) || [];
             savedChatsList.innerHTML = savedChats.length ? '' : '<p class="text-xs text-gray-500 p-2">저장된 채팅이 없습니다.</p>';
             savedChats.forEach(chat => {
-                const div = document.createElement('div');
-                div.className = 'bg-gray-700 p-2.5 rounded-lg mb-2';
-                div.innerHTML = `
-                    <p class="text-sm font-semibold text-white truncate">${chat.title}</p>
-                    <div class="flex space-x-2 mt-2">
-                        <button class="btn-chat-action btn-chat-load" data-id="${chat.id}">불러오기</button>
-                        <button class="btn-chat-action btn-chat-delete-save" data-id="${chat.id}">삭제</button>
-                    </div>
-                `;
+                const div = document.createElement('div'); div.className = 'bg-gray-700 p-2.5 rounded-lg mb-2';
+                div.innerHTML = `<p class="text-sm font-semibold text-white truncate">${chat.title}</p><div class="flex space-x-2 mt-2"><button class="btn-chat-action btn-chat-load" data-id="${chat.id}">불러오기</button><button class="btn-chat-action btn-chat-delete-save" data-id="${chat.id}">삭제</button></div>`;
                 savedChatsList.appendChild(div);
             });
         }
@@ -915,36 +685,19 @@ ${userPersona || "설정 없음"}
             if (e.target.classList.contains('btn-chat-load')) {
                 const savedChats = JSON.parse(localStorage.getItem(SAVED_CHATS_STORAGE_ID));
                 const chat = savedChats.find(c => String(c.id) === String(id));
-                if (chat) {
-                    appState = chat.settings; // 설정 복원
-                    chatHistory = chat.history; // 대화 복원
-                    saveSettings();
-                    saveChatHistory();
-                    loadSettings(); // UI 갱신
-                    loadChatHistory(); // 대화창 갱신
-                    if (window.innerWidth < 768) btnCloseSidebar.click();
-                }
+                if (chat) { appState = chat.settings; chatHistory = chat.history; saveSettings(); saveChatHistory(); loadSettings(); loadChatHistory(); if (window.innerWidth < 768) btnCloseSidebar.click(); }
             } else if (e.target.classList.contains('btn-chat-delete-save')) {
                 let savedChats = JSON.parse(localStorage.getItem(SAVED_CHATS_STORAGE_ID));
                 savedChats = savedChats.filter(c => String(c.id) !== String(id));
-                localStorage.setItem(SAVED_CHATS_STORAGE_ID, JSON.stringify(savedChats));
-                loadSavedChatsList();
+                localStorage.setItem(SAVED_CHATS_STORAGE_ID, JSON.stringify(savedChats)); loadSavedChatsList();
             }
         }
-        // TXT 불러오기 (v1.2 호환성 위해 간소화 구현: 텍스트 파싱 로직은 구조가 달라져서 일부 생략하거나 v1.1 방식으로 처리)
         function handleImportFile(event) {
-             const file = event.target.files[0];
-             if(!file) return;
+             const file = event.target.files[0]; if(!file) return;
              const reader = new FileReader();
-             reader.onload = (e) => {
-                 // 간단 파싱: 기존 로직 재활용하되 appState에 매핑
-                 const text = e.target.result;
-                 // (정규식 생략 - 필요시 추가 구현)
-                 alert("v1.2에서는 txt 불러오기 기능이 일부 제한될 수 있습니다 (구조 변경).");
-             };
+             reader.onload = (e) => { alert("v1.2 이상 파일만 지원합니다."); };
              reader.readAsText(file);
         }
-
     </script>
 </body>
 </html>

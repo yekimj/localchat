@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>페르소나 챗 v2.0</title>
+    <title>페르소나 챗 v2.1</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -32,6 +32,10 @@
         /* 하트 애니메이션 */
         @keyframes heartbeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.3); } }
         .heart-pulse { animation: heartbeat 0.5s ease-in-out; }
+        
+        /* 새로고침 회전 애니메이션 */
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .animate-spin-once { animation: spin 1s linear; }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -78,7 +82,7 @@
                 <label for="model-select" class="block mb-2 text-sm font-medium text-purple-300">모델 선택</label>
                 <select id="model-select" class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-purple-500 focus:border-purple-500">
                     <option value="gemini-2.5-pro" selected>Pro2.5 (기본값)</option>
-                    <option value="gemini-3-pro-preview" >Pro3 (2.0v)</option>
+                    <option value="gemini-3-pro-preview" >Pro3 (2.1v)</option>
                 </select>
             </div>
 
@@ -176,8 +180,15 @@
             </div>
             <div class="affection-control mt-3 pt-2 border-t border-gray-600 hidden">
                 <div class="flex justify-between text-xs mb-1">
-                    <span class="text-pink-400 font-bold"> 호감도</span>
-                    <span class="affection-value text-white">0</span>
+                    <span class="text-pink-400 font-bold">❤️ 호감도</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="affection-value text-white">0</span>
+                        <button class="btn-refresh-affection text-gray-400 hover:text-blue-400 transition-colors p-0.5 rounded" title="호감도 분석 및 새로고침">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m-15.357-2a8.001 8.001 0 0015.357 2m0 0H15" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <input type="range" min="0" max="100" value="0" class="affection-slider w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-pink-500">
             </div>
@@ -233,6 +244,8 @@
         const btnImportTxt = document.getElementById('btn-import-txt');
         const fileImporter = document.getElementById('file-importer');
 
+        // ✨ 핵심 설정 상수
+        const CONVERSATION_WINDOW_SIZE = 10; 
         const SETTINGS_STORAGE_KEY = 'gemini-settings-v1.2';
         
         let appState = {
@@ -363,6 +376,7 @@
                 const affectionControl = clone.querySelector('.affection-control');
                 const affectionSlider = clone.querySelector('.affection-slider');
                 const affectionValue = clone.querySelector('.affection-value');
+                const refreshBtn = clone.querySelector('.btn-refresh-affection'); // ✨ 새로고침 버튼
 
                 nameInput.value = char.name;
                 personaInput.value = char.persona;
@@ -383,9 +397,73 @@
                     affectionValue.textContent = char.affection || 0;
                     affectionSlider.addEventListener('input', (e) => { affectionValue.textContent = e.target.value; });
                     affectionSlider.addEventListener('change', (e) => { appState.characters[index].affection = parseInt(e.target.value); saveSettings(); });
+                    
+                    // ✨ 새로고침 버튼 이벤트
+                    refreshBtn.addEventListener('click', () => {
+                        handleRefreshAffection(index, refreshBtn);
+                    });
+
                 } else { affectionControl.classList.add('hidden'); }
                 characterListContainer.appendChild(clone);
             });
+        }
+
+        // ✨ 호감도 새로고침 기능
+        async function handleRefreshAffection(charIndex, btnElement) {
+            if (!userApiKey) { alert('API 키가 없습니다.'); return; }
+            const char = appState.characters[charIndex];
+            const charName = char.name || "이름 없는 캐릭터";
+            
+            // UI 로딩 표시
+            const originalIcon = btnElement.innerHTML;
+            btnElement.innerHTML = `<svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+            btnElement.disabled = true;
+
+            try {
+                // 분석용 프롬프트 생성
+                const analysisPrompt = `
+당신은 '${charName}'입니다. 아래 제공되는 최근 ${CONVERSATION_WINDOW_SIZE}개의 대화 내용을 분석하여, 현재 대화 상대(User)에 대한 호감도(0~100)를 재평가하세요.
+
+[캐릭터 설정]
+${char.persona}
+
+[유저 설정]
+${appState.userPersona}
+
+[현재 상황]
+${appState.currentSituation}
+
+[지침]
+1. 최근 대화의 흐름과 감정을 분석하세요.
+2. 대화 내용을 생성하지 마세요. 오직 호감도 점수 태그만 출력하세요.
+3. 출력 형식: {{affection: 점수}}
+`;
+                // API 호출 (최근 대화만 전송)
+                const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
+                const resultText = await callGeminiApi(recentHistory, analysisPrompt, userApiKey);
+
+                // 파싱
+                const match = resultText.match(/\{\{affection:\s*(\d+)\}\}/);
+                if (match) {
+                    const newScore = parseInt(match[1]);
+                    appState.characters[charIndex].affection = newScore;
+                    saveSettings();
+                    renderCharacterList(); // 슬라이더 업데이트
+                    
+                    // 완료 메시지 표시
+                    displayMessage(`[시스템] '${charName}'의 호감도가 재설정되었습니다. (현재: ${newScore})`, 'system');
+                } else {
+                    console.warn("호감도 파싱 실패:", resultText);
+                    alert("AI가 호감도 점수를 출력하지 못했습니다.");
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert("호감도 분석 중 오류 발생: " + error.message);
+            } finally {
+                btnElement.innerHTML = originalIcon;
+                btnElement.disabled = false;
+            }
         }
 
         function addCharacter() {
@@ -410,7 +488,6 @@
             }
         }
 
-        // ✨ 중요: 메시지 전송 로직 수정 (버그 픽스 & 호감도 파싱)
         async function handleSendChat(event) {
             event.preventDefault(); 
             if (!userApiKey) {
@@ -418,21 +495,18 @@
                 if (window.innerWidth < 768) btnOpenSidebar.click(); return;
             }
             
-            let prompt = chatInput.value.trim(); // 1. 먼저 내용 가져옴
+            let prompt = chatInput.value.trim(); 
             const userMessageId = Date.now() + '-user';
-            let displayUserMessage = true; 
 
             if (prompt !== "") {
-                // 2. 메시지가 있으면 표시 및 히스토리 추가 *먼저* 함
                 displayMessage(prompt, 'user', userMessageId);
                 chatHistory.push({ id: userMessageId, role: "user", parts: [{ text: prompt }] });
-                chatInput.value = ""; // 3. 그 다음에 비움 (순서 중요!)
+                chatInput.value = ""; 
                 chatInput.style.height = 'auto';
             } else {
                 if (chatHistory.length === 0) return;
                 if (!loadingIndicator.classList.contains('hidden')) return;
-                prompt = "(사용자가 다음 차례를 넘겼습니다. 현재까지의 대화 흐름을 이어받아, 당신의 캐릭터가 할 다음 행동이나 대사, 혹은 주변 상황에 대한 묘사를 통해 이야기를 진행시키세요)";
-                displayUserMessage = false;
+                prompt = "(사용자가 다음 차례를 넘겼습니다...)";
             }
 
             saveChatHistory(); 
@@ -440,26 +514,23 @@
 
             try {
                 const systemPrompt = buildSystemPrompt();
-                const recentHistory = chatHistory.slice(-15);
+                // ✨ 요청한 대로 상수 사용
+                const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
                 
-                // API 호출
                 let text = await callGeminiApi(recentHistory, systemPrompt, userApiKey);
                 
-                // ✨ 호감도 태그 파싱 (예: {{affection: 80}})
+                // 호감도 태그 파싱
                 if (appState.useAffection) {
                     const affectionMatch = text.match(/\{\{affection:\s*(\d+)\}\}/);
                     if (affectionMatch) {
                         const newScore = parseInt(affectionMatch[1]);
-                        // 점수 적용 대상 찾기 (메시지에 이름이 있는 캐릭터 우선, 없으면 첫번째)
                         const mentionedChar = appState.characters.find(c => c.name && text.includes(c.name));
                         const targetChar = mentionedChar || appState.characters[0];
-                        
                         if (targetChar) {
                             targetChar.affection = newScore;
                             saveSettings();
-                            renderCharacterList(); // 사이드바 UI 갱신
+                            renderCharacterList(); 
                         }
-                        // 태그 제거 후 텍스트 표시
                         text = text.replace(affectionMatch[0], "").trim();
                     }
                 }
@@ -544,8 +615,6 @@ ${useAffection ? `
             if (role === 'model') {
                 bubble.classList.add('bg-gray-700', 'self-start', 'mr-auto');
                 let displayHeader = `<span class="font-bold block text-blue-300 mb-1">AI</span>`;
-                
-                // 호감도 UI 표시 로직
                 if (appState.useAffection) {
                     const foundChar = appState.characters.find(c => c.name && message.startsWith(c.name));
                     if (foundChar) {
@@ -558,13 +627,15 @@ ${useAffection ? `
                     }
                 }
                 bubble.innerHTML = displayHeader;
-
             } else if (role === 'user') {
                 bubble.classList.add('bg-blue-600', 'self-end', 'ml-auto');
                 bubble.innerHTML = `<span class="font-bold block text-blue-200 mb-1">나</span>`;
+            } else if (role === 'system') { // ✨ 시스템 메시지 스타일 추가
+                bubble.classList.add('bg-gray-600', 'self-center', 'mx-auto', 'text-center');
+                bubble.innerHTML = `<span class="font-bold block text-yellow-300 mb-1">시스템</span>`;
             } else {
                 bubble.classList.add('bg-red-700', 'self-start', 'mr-auto');
-                bubble.innerHTML = `<span class="font-bold block text-red-200 mb-1">시스템</span>`;
+                bubble.innerHTML = `<span class="font-bold block text-red-200 mb-1">시스템 오류</span>`;
             }
             
             const p = document.createElement('p');
@@ -575,7 +646,7 @@ ${useAffection ? `
             });
             bubble.appendChild(p);
 
-            if (messageId) {
+            if (messageId && role !== 'system') {
                 const deleteButton = document.createElement('button');
                 deleteButton.innerHTML = '&#x2715;';
                 deleteButton.className = 'btn-delete text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity absolute top-1 right-1 p-1 leading-none z-10';
@@ -651,7 +722,9 @@ ${useAffection ? `
              loadingIndicator.classList.remove('hidden');
              try {
                 const systemPrompt = buildSystemPrompt();
-                const text = await callGeminiApi(chatHistory.slice(-15), systemPrompt, userApiKey);
+                // ✨ 재생성 시에도 윈도우 사이즈 적용
+                const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
+                const text = await callGeminiApi(recentHistory, systemPrompt, userApiKey);
                 const modelMessageId = Date.now() + '-model';
                 displayMessage(text, 'model', modelMessageId);
                 chatHistory.push({ id: modelMessageId, role: "model", parts: [{ text: text }] });

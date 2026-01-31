@@ -629,13 +629,22 @@
             });
             saveChatHistory(); 
             loadingIndicator.classList.remove('hidden');
-            try {
+          try {
                 const systemPrompt = buildSystemPrompt();
-                const CONVERSATION_WINDOW_SIZE = 10;
+                const CONVERSATION_WINDOW_SIZE = 15;
                 const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
-                const text = await callGeminiApi(recentHistory, systemPrompt, userApiKey);
-                const modelMessageId = Date.now() + '-model';
-                displayMessage(text, 'model', modelMessageId);
+                
+                // 1. 미리 빈 말풍선을 만듦 (loading 표시 대신)
+const modelMessageId = Date.now() + '-model';
+                const textElement = displayMessage("", 'model', modelMessageId);
+                let accumulatedText = "";
+
+                const text = await callGeminiApi(recentHistory, systemPrompt, userApiKey, (chunk) => {
+                    accumulatedText += chunk;
+                    textElement.innerHTML = accumulatedText.replace(/\n/g, '<br>');
+                    chatDisplay.scrollTop = chatDisplay.scrollHeight;
+                });
+
                 chatHistory.push({
                     id: modelMessageId,
                     role: "model",
@@ -1206,14 +1215,15 @@
         // ---
 
         /**
-         * 6. API 호출 공통 함수 (기존과 동일)
+        * 6. API 호출 공통 함수 (스트리밍 버전)
+         * onChunk: 텍스트 조각이 들어올 때마다 실행될 콜백 함수
          */
-        async function callGeminiApi(contents, systemInstructionText, apiKey) {
-            // (이 함수 내용은 변경 없음 - 기존과 동일)
+        async function callGeminiApi(contents, systemInstructionText, apiKey, onChunk) {
             if (!apiKey) {
                 throw new Error("API key is missing.");
             }
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            // ✨ 중요: generateContent -> streamGenerateContent 로 변경
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?key=${apiKey}`;
             const safetyThreshold = "BLOCK_NONE";
             const safetySettings = [
                 { category: "HARM_CATEGORY_HARASSMENT", threshold: safetyThreshold },
@@ -1221,71 +1231,102 @@
                 { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: safetyThreshold },
                 { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: safetyThreshold },
             ];
+
             const apiSafeContents = contents.map(msg => ({
                 role: msg.role,
                 parts: msg.parts
             }));
+
             if (systemInstructionText) {
                 apiSafeContents.unshift(
                     { role: "user", parts: [{ text: systemInstructionText }] },
                     { role: "model", parts: [{ text: "알겠습니다. 설정된 페르소나와 지침에 따라 응답하겠습니다." }] }
                 );
             }
+
             const payload = {
                 contents: apiSafeContents,
                 safetySettings: safetySettings,
-                // ✨ 답변 길이를 늘려주는 설정 추가 ✨
                 generationConfig: {
-                    maxOutputTokens: 4096,  // 답변 최대 길이 (넉넉하게 설정)
-                    temperature: 0.8,       // 창의성 (1.0이면 감성적이고 말을 더 많이 함)
+                    maxOutputTokens: 4096,
+                    temperature: 0.8,
                     topP: 0.95
                 }
             };
+
             const response = await fetchWithRetry(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+
             if (!response.ok) {
-                if (response.status === 401 || response.status === 403) {
-                     throw new Error(`API key not valid or unauthorized (status: ${response.status})`);
-                }
-                if (response.status === 400) {
-                     throw new Error(`Server error: 400 (Bad Request). API 키는 맞지만 요청 내용(JSON 형식 등)을 서버가 거부했습니다.`);
-                }
+                 // 에러 처리는 기존과 동일하게 유지
+                if (response.status === 401 || response.status === 403) throw new Error(`API key not valid (status: ${response.status})`);
+                if (response.status === 400) throw new Error(`Bad Request (400). 요청 형식을 확인하세요.`);
                 throw new Error(`API error! status: ${response.status}`);
             }
-            const result = await response.json();
-            if (result.promptFeedback) {
-                console.error("Prompt Feedback:", result.promptFeedback);
-                const blockReason = result.promptFeedback.blockReason || '알 수 없는 이유';
-                throw new Error(`입력이 차단되었습니다. (이유: ${blockReason})`);
-            }
-            const candidate = result.candidates?.[0];
-            if (candidate) {
-                if (candidate.finishReason === 'STOP' || candidate.finishReason === 'MAX_TOKENS') {
-                    if (candidate.content && 
-                        candidate.content.parts && 
-                        candidate.content.parts.length > 0 &&
-                        candidate.content.parts[0].text != null 
-                    ) {
-                        if (candidate.finishReason === 'MAX_TOKENS') {
-                             console.warn("API finishReason: MAX_TOKENS. 응답이 잘렸을 수 있습니다.");
-                        }
-                        return candidate.content.parts[0].text;
-                    } else {
-                        return ""; 
+
+            // ✨✨✨ 스트림 데이터 처리 로직 시작 ✨✨✨
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let buffer = "";
+            let fullText = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                // 1. 청크를 텍스트로 변환해서 버퍼에 쌓음
+                buffer += decoder.decode(value, { stream: true });
+
+                // 2. 버퍼에서 완전한 JSON 객체를 찾아서 파싱 (괄호 짝 맞추기)
+                // Gemini API는 배열 형태 "[{...}, \n {...}]" 로 옴. 
+                // 간단하게 처리하기 위해 '[' 같은 건 무시하고 객체 단위로 끊음.
+                
+                let startIndex = 0;
+                let braceCount = 0;
+                let insideString = false;
+                
+                for (let i = 0; i < buffer.length; i++) {
+                    const char = buffer[i];
+                    
+                    // JSON 파싱을 위한 간단한 브레이스 카운팅 (문자열 내부 무시)
+                    if (char === '"' && buffer[i-1] !== '\\') {
+                        insideString = !insideString;
                     }
-                } else {
-                    throw new Error(`API가 정상 종료되지 않았습니다. (이유: ${candidate.finishReason || '알 수 없음'})`);
+                    if (insideString) continue;
+
+                    if (char === '{') {
+                        if (braceCount === 0) startIndex = i;
+                        braceCount++;
+                    } else if (char === '}') {
+                        braceCount--;
+                        if (braceCount === 0) {
+                            // 하나의 JSON 객체 완성
+                            const jsonStr = buffer.substring(startIndex, i + 1);
+                            try {
+                                const parsed = JSON.parse(jsonStr);
+                                const chunkText = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+                                if (chunkText) {
+                                    fullText += chunkText;
+                                    // ✨ 콜백 함수 호출 (화면에 글자 뿌리기)
+                                    if (onChunk) onChunk(chunkText); 
+                                }
+                            } catch (e) {
+                                console.error("JSON parse error in stream:", e);
+                            }
+                            // 처리한 부분 잘라내기 위해 인덱스 저장 등은 생략하고,
+                            // 그냥 버퍼를 여기서부터 다시 시작하도록 조정
+                            buffer = buffer.substring(i + 1);
+                            i = -1; // 루프 인덱스 초기화
+                        }
+                    }
                 }
-            } else {
-                 if (result.promptFeedback) {
-                    const blockReason = result.promptFeedback.blockReason || '알 수 없음';
-                     throw new Error(`입력이 차단되었습니다. (이유: ${blockReason})`);
-                }
-                throw new Error("API로부터 유효한 응답(candidates)을 받지 못했습니다.");
             }
+            // 혹시 남은 버퍼 처리 (보통은 닫는 대괄호 ']' 만 남음)
+            
+            return fullText;
         }
 
 
@@ -1391,6 +1432,9 @@ ${memory || "설정 없음"}
             if (chatDisplay.scrollHeight - chatDisplay.scrollTop < chatDisplay.clientHeight + 200) {
                  chatDisplay.scrollTop = chatDisplay.scrollHeight;
             }
+            
+            // ✨ [추가된 부분] 나중에 텍스트를 추가할 수 있게 p 태그를 리턴
+            return p; 
         }
 
         /**
@@ -1432,6 +1476,7 @@ ${memory || "설정 없음"}
     </script>
 </body>
 </html>
+
 
 
 

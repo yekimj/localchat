@@ -615,6 +615,30 @@
                 }
                 if (!loadingIndicator.classList.contains('hidden')) {
                     return; 
+                }async function handleSendChat(event) {
+            event.preventDefault(); 
+            if (!userApiKey) {
+                apiKeyAlert.classList.remove('hidden'); 
+                displayMessage("API 키가 없습니다. (☰) 버튼을 눌러 키를 먼저 저장하세요.", 'error');
+                if (window.innerWidth < 768) { 
+                    btnOpenSidebar.click();
+                }
+                return;
+            }
+            let prompt = chatInput.value.trim();
+            const userMessageId = Date.now() + '-user';
+            let displayUserMessage = true; 
+            if (prompt !== "") {
+                chatInput.value = ""; 
+                chatInput.style.height = 'auto';
+                displayUserMessage = true; 
+            } else {
+                if (chatHistory.length === 0) {
+                    displayMessage('대화를 시작하려면 먼저 메시지를 입력해주세요.', 'model');
+                    return;
+                }
+                if (!loadingIndicator.classList.contains('hidden')) {
+                    return; 
                 }
                 prompt = "(사용자가 다음 차례를 넘겼다. 현재까지의 대화 흐름을 이어받아, 당신의 캐릭터가 할 다음 행동이나 대사, 혹은 주변 상황에 대한 묘사를 통해 이야기를 진행시키세요.)";
                 displayUserMessage = false; 
@@ -629,22 +653,50 @@
             });
             saveChatHistory(); 
             loadingIndicator.classList.remove('hidden');
-          try {
+
+            try {
                 const systemPrompt = buildSystemPrompt();
                 const CONVERSATION_WINDOW_SIZE = 15;
                 const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
                 
                 // 1. 미리 빈 말풍선을 만듦 (loading 표시 대신)
-const modelMessageId = Date.now() + '-model';
+                const modelMessageId = Date.now() + '-model';
                 const textElement = displayMessage("", 'model', modelMessageId);
-                let accumulatedText = "";
+                
+                // ✨ 타이핑 효과를 위한 변수들
+                let streamBuffer = "";    // API에서 받아온 전체 텍스트가 쌓이는 곳
+                let displayedText = "";   // 현재 화면에 보여진 텍스트
+                let isGenerating = true;  // API 수신 중인지 여부
+                
+                // ✨ 속도 조절: 숫자가 클수록 느려짐 (20~30ms 추천)
+                const TYPING_SPEED = 30; 
 
+                // ✨ 타이핑 애니메이션 루프 (API 속도와 무관하게 일정 속도로 찍음)
+                const typingInterval = setInterval(() => {
+                    // 버퍼에 아직 화면에 안 뿌린 글자가 남아 있다면
+                    if (displayedText.length < streamBuffer.length) {
+                        // 한 글자씩 가져와서 보여줌
+                        const char = streamBuffer[displayedText.length];
+                        displayedText += char;
+                        textElement.innerHTML = displayedText.replace(/\n/g, '<br>');
+                        chatDisplay.scrollTop = chatDisplay.scrollHeight;
+                    } else {
+                        // 버퍼를 다 보여줬는데, API도 끝났다면 타이머 종료
+                        if (!isGenerating) {
+                            clearInterval(typingInterval);
+                        }
+                    }
+                }, TYPING_SPEED);
+
+                // 2. API 호출 (여기서는 버퍼에 쌓기만 함)
                 const text = await callGeminiApi(recentHistory, systemPrompt, userApiKey, (chunk) => {
-                    accumulatedText += chunk;
-                    textElement.innerHTML = accumulatedText.replace(/\n/g, '<br>');
-                    chatDisplay.scrollTop = chatDisplay.scrollHeight;
+                    streamBuffer += chunk; 
                 });
 
+                // API 호출 끝남 표시
+                isGenerating = false; 
+
+                // 3. 기록 저장 (전체 텍스트 저장)
                 chatHistory.push({
                     id: modelMessageId,
                     role: "model",
@@ -660,8 +712,7 @@ const modelMessageId = Date.now() + '-model';
                      displayMessage(`Server error: 400 (Bad Request). API 키는 맞지만 요청 내용(JSON 형식 등)을 서버가 거부했습니다.`, 'error');
                 } else if (error.message && error.message.includes('fetch')) {
                      displayMessage(`네트워크 오류: API 서버에 연결할 수 없습니다. (주소: ${error.message})`, 'error');
-                }
-                 else {
+                } else {
                      displayMessage(`오류가 발생했습니다: ${error.message}`, 'error');
                 }
             } finally {
@@ -670,7 +721,6 @@ const modelMessageId = Date.now() + '-model';
                     btnCloseSidebar.click();
                 }
             }
-        }
 
         // ---
         // 5. 기능 함수 (삭제, 추천, 추출, 다운로드, 재생성)
@@ -1527,6 +1577,7 @@ ${memory || "설정 없음"}
     </script>
 </body>
 </html>
+
 
 
 

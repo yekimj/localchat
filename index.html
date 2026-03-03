@@ -128,9 +128,9 @@
                 <label for="model-select" class="block mb-2 text-sm font-medium text-purple-300">모델 선택</label>
                 <select id="model-select" class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-purple-500 focus:border-purple-500">
                     <option value="gemini-2.5-pro" selected>Pro2.5 (기본값)</option>
-                    <option value="gemini-3.1-pro-preview" >Pro3.1 (고고성능)</option>
-                    <option value="gemini-3-pro-preview" >pro3 (최저성능)</option>
-                    <option value="gemini-3-flash-preview" >Pro3flash (그성능)</option>
+                    <option value="gemini-3.1-pro-preview" >Pro3.1 (최고성능)</option>
+                    <option value="gemini-3-pro-preview" >pro3 (기존성능)</option>
+                    <option value="gemini-3-flash-preview" >Pro3flash (밤티성능)</option>
                 </select>
             </div>
             
@@ -1241,6 +1241,8 @@
                     maxOutputTokens: 4096,  // 답변 최대 길이 (넉넉하게 설정)
                     temperature: 0.8,       // 창의성 (1.0이면 감성적이고 말을 더 많이 함)
                     topP: 0.95
+                    presencePenalty: 0.6,  // 새로운 대화 주제 유도 추가
+                    frequencyPenalty: 0.6  // 같은 표현 반복 억제 추가
                 }
             };
             const response = await fetchWithRetry(apiUrl, {
@@ -1436,6 +1438,7 @@ ${memory || "설정 없음"}
     </script>
 </body>
 </html>
+
 
 
 

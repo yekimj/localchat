@@ -114,7 +114,7 @@
                 <div>
                     <label class="block mb-2 text-sm font-bold text-purple-300">메인 모델 선택</label>
                     <select id="model-select" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-1 focus:ring-purple-500 outline-none">
-                        <option value="gemini-2.5-pro" selected>Pro 2.5 (기본?)</option>
+                        <option value="gemini-2.5-pro" selected>Pro 2.5 (기본!)</option>
                         <option value="gemini-3.1-pro-preview">Pro 3.1 (최고성능)</option>
                         <option value="gemini-3-pro-preview">Pro 3 (기존)</option>
                         <option value="gemini-3-flash-preview">Flash 3 (밤티성능)</option>
@@ -417,19 +417,22 @@ async function callSummaryApi(prompt, apiKey) {
 }
 
 async function checkAndRunAutoSummary() {
-    // 1. 유저 매커니즘 절대 유지: 채팅 개수 무관하게 무조건 20의 배수일 때 딱 한 번 실행
-    if (chatHistory.length === 0 || chatHistory.length % 20 !== 0) return;
+    // 🚀 핵심 수정: 보이지 않는 내부 데이터 개수가 아니라, '눈에 보이는 말풍선 개수'를 센다!
+    const visibleCount = document.querySelectorAll('#chat-display > div[data-id]').length;
+
+    // 1. 유저 매커니즘 완벽 유지: 화면에 찍힌 번호가 딱 20의 배수일 때만 통과
+    if (visibleCount === 0 || visibleCount % 20 !== 0) return;
 
     // 2. 자동 요약 필드가 둘 다 비어 있는지 확인
     const isSummaryEmpty = !autoTotalSummary.value.trim() && !autoRecentSummary.value.trim();
 
-    // 🔥 여기서부터가 문제 해결의 핵심 (시각적 피드백 + 에러 방어망)
+    // ⏳ 시각적 피드백 즉시 표시 (이제 20배수 될 때 무조건 이 글씨부터 뜸)
     const origRecent = autoRecentSummary.value; 
-    autoRecentSummary.value = "⏳ [시스템] 20배수 도달. 요약 중... (데이터가 많아 10~20초 걸릴 수 있음)";
+    autoRecentSummary.value = `⏳ [시스템] #${visibleCount} 도달. 요약 중... (데이터가 많아 10~20초 소요)`;
 
     try {
         if (isSummaryEmpty) {
-            // [CASE 1] 비어있을 때: 1~140개 전체 대화를 통째로 요약
+            // [CASE 1] 비어있을 때: 통째로 요약 (투명 메시지까지 전부 긁어서 요약함)
             const fullHistory = chatHistory.map((m, i) => `[#${i+1}] ${m.role}: ${m.parts[0].text}`).join('\n');
             autoRecentSummary.value = await callSummaryApi(`아래는 지금까지의 전체 대화 내용이야. 이 내용을 핵심 사건 위주로 요약해서 '최근 요약본'을 만들어줘:\n\n${fullHistory}`, userApiKey);
         } else {
@@ -449,10 +452,10 @@ async function checkAndRunAutoSummary() {
         }
         saveSettings();
     } catch (err) {
-        // 💥 옛날 코드엔 이게 없어서 조용히 뻗었던 거임. 이제 에러 나면 이유가 칸에 정확히 뜸.
-        autoRecentSummary.value = `❌ 요약 실패: ${err.message}\n(140개 텍스트가 너무 길어 API 타임아웃이 났거나, 대화 중 안전 필터에 걸렸을 확률이 높음)`;
+        autoRecentSummary.value = `❌ 요약 실패: ${err.message}\n(API 타임아웃이나 필터링 문제일 수 있음)`;
     }
 }
+
 
 
         function buildSystemPrompt() {

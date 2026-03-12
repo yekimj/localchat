@@ -278,6 +278,46 @@
         document.getElementById('btn-download').addEventListener('click', handleDownload);
         document.getElementById('btn-import-txt').addEventListener('click', () => document.getElementById('file-importer').click());
         document.getElementById('file-importer').addEventListener('change', handleImportFile);
+        
+        // --- 채팅 비우기(모달) 관련 DOM 선언 ---
+const btnClearChat = document.getElementById('btn-clear-chat');
+const confirmModal = document.getElementById('confirm-modal');
+const confirmModalBackdrop = document.getElementById('confirm-modal-backdrop');
+const btnModalCancel = document.getElementById('btn-modal-cancel');
+const btnModalConfirmDelete = document.getElementById('btn-modal-confirm-delete');
+
+// 1. 비우기 버튼 클릭 시 모달 표시
+btnClearChat.addEventListener('click', () => {
+    confirmModal.classList.remove('hidden');
+    confirmModalBackdrop.classList.remove('hidden');
+});
+
+// 2. 취소 버튼이나 배경 클릭 시 모달 닫기
+[btnModalCancel, confirmModalBackdrop].forEach(el => {
+    if (el) {
+        el.addEventListener('click', () => {
+            confirmModal.classList.add('hidden');
+            confirmModalBackdrop.classList.add('hidden');
+        });
+    }
+});
+
+// 3. 삭제 확인 버튼 클릭 시 진짜 삭제 실행
+btnModalConfirmDelete.addEventListener('click', () => {
+    // 채팅 내역 초기화
+    chatHistory = []; 
+    
+    // 로컬 스토리지 업데이트 및 화면 리프레시
+    saveChatHistory(); 
+    loadChatHistory(); 
+    
+    // 모달 닫기
+    confirmModal.classList.add('hidden');
+    confirmModalBackdrop.classList.add('hidden');
+    
+    alert("채팅 기록이 전부 삭제되었어!");
+});
+
 
         // --- 3. 핵심 로직: 메시지 전송 및 API ---
         async function handleSendChat(e) {
@@ -303,8 +343,8 @@
 
             try {
                 const sysPrompt = buildSystemPrompt();
-                // 요약 기반이므로 마지막 메시지 1개만 contents로 전송
-                const contents = chatHistory.slice(-1);
+                // 요약 기반이므로 마지막 메시지 3개만 contents로 전송
+                const contents = chatHistory.slice(-3);
                 const responseText = await callGeminiApi(contents, sysPrompt, userApiKey);
                 
                 const mId = Date.now() + '-ai';

@@ -114,7 +114,7 @@
                 <div>
                     <label class="block mb-2 text-sm font-bold text-purple-300">메인 모델 선택</label>
                     <select id="model-select" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-1 focus:ring-purple-500 outline-none">
-                        <option value="gemini-2.5-pro" selected>Pro 2.5 (기본)</option>
+                        <option value="gemini-2.5-pro" selected>Pro 2.5 (기본?)</option>
                         <option value="gemini-3.1-pro-preview">Pro 3.1 (최고성능)</option>
                         <option value="gemini-3-pro-preview">Pro 3 (기존)</option>
                         <option value="gemini-3-flash-preview">Flash 3 (밤티성능)</option>
@@ -398,22 +398,46 @@
             finally { btnManualSummary.textContent = "생성"; }
         });
 
-        async function checkAndRunAutoSummary() {
-            if (chatHistory.length === 0 || chatHistory.length % 20 !== 0) return;
-            
-            let total = autoTotalSummary.value;
-            const recent = autoRecentSummary.value;
-            if(recent) total = total ? total + "\n\n" + recent : recent;
+async function checkAndRunAutoSummary() {
+    // 채팅이 없거나 20의 배수가 아니면 일단 패스
+    if (chatHistory.length === 0 || chatHistory.length % 20 !== 0) return;
 
-            if (total.length > 1500) {
-                total = await callSummaryApi(`아래 줄거리를 500자 내외로 압축해줘:\n\n${total}`, userApiKey);
-            }
-            autoTotalSummary.value = total;
+    // 자동 요약 필드가 둘 다 비어 있는지 확인
+    const isSummaryEmpty = !autoTotalSummary.value.trim() && !autoRecentSummary.value.trim();
 
-            const latest20 = chatHistory.slice(-20).map(m => `${m.role}: ${m.parts[0].text}`).join('\n');
-            autoRecentSummary.value = await callSummaryApi(`최근 20개 대화를 요약해줘:\n\n${latest20}`, userApiKey);
-            saveSettings();
-        }
+    // [CASE 1] 요약 칸이 비어 있을 때 (새로 시작하거나 대량의 데이터를 불러왔을 때)
+    if (isSummaryEmpty) {
+        // 현재까지의 전체 대화를 하나의 텍스트로 합침
+        const fullHistory = chatHistory.map((m, i) => `[#${i+1}] ${m.role}: ${m.parts[0].text}`).join('\n');
+        
+        // 전체 내용을 기반으로 첫 요약 생성
+        autoRecentSummary.value = await callSummaryApi(
+            `아래는 지금까지의 전체 대화 내용이야. 이 내용을 핵심 사건 위주로 요약해서 '최근 요약본'을 만들어줘:\n\n${fullHistory}`, 
+            userApiKey
+        );
+        saveSettings();
+        return; // 초기화가 끝났으므로 여기서 종료
+    }
+
+    // [CASE 2] 이미 요약된 내용이 있을 때 (기존 매커니즘 유지)
+    // 기존에 적힌 내용이 아까우니까 평소대로 20턴마다 누적시키기만 함
+    let total = autoTotalSummary.value;
+    const recent = autoRecentSummary.value;
+    
+    if(recent) total = total ? total + "\n\n" + recent : recent;
+
+    // 누적 데이터가 너무 길어지면 압축
+    if (total.length > 1500) {
+        total = await callSummaryApi(`아래 줄거리를 전체 맥락이 유지되도록 500자 내외로 압축해줘:\n\n${total}`, userApiKey);
+    }
+    autoTotalSummary.value = total;
+
+    // 마지막 20개 대화만 따로 요약해서 최근 요약본 갱신
+    const latest20 = chatHistory.slice(-20).map(m => `${m.role}: ${m.parts[0].text}`).join('\n');
+    autoRecentSummary.value = await callSummaryApi(`최근 20개 대화의 핵심 내용을 요약해줘:\n\n${latest20}`, userApiKey);
+    
+    saveSettings();
+}
 
         function buildSystemPrompt() {
             return `당신은 설정에 몰입한 AI 페르소나입니다. 소설처럼 서술하세요.
@@ -627,6 +651,7 @@
     </script>
 </body>
 </html>
+
 
 
 

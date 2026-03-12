@@ -70,8 +70,7 @@
         <!-- 1. 설정 사이드바 -->
         <div id="sidebar" class="w-full md:w-1/3 lg:w-1/4 bg-gray-800 p-4 overflow-y-auto 
             fixed inset-y-0 left-0 z-50 transform -translate-x-full md:relative md:translate-x-0 
-            transition-transform duration-300 ease-in-out md:flex-shrink-0
-            pb-24 md:pb-4">
+            transition-transform duration-300 ease-in-out md:flex-shrink-0 pb-24 md:pb-4">
             
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold text-white">페르소나 설정</h2>
@@ -81,86 +80,85 @@
                     </svg>
                 </button>
             </div>
+
+            <div class="mb-6 p-3 bg-gray-900 rounded-lg border border-gray-700">
+                <h3 class="text-lg font-bold text-purple-400 mb-3">🧠 AI의 기억 (요약)</h3>
+                
+                <div class="mb-4">
+                    <label class="block mb-1 text-sm font-medium text-pink-300">수동 요약</label>
+                    <div class="flex items-center space-x-2 mb-2">
+                        <input type="number" id="manual-num-start" class="w-16 p-1 bg-gray-700 border border-gray-600 rounded text-white text-center text-sm" placeholder="n">
+                        <span class="text-gray-400 text-sm">~</span>
+                        <input type="number" id="manual-num-end" class="w-16 p-1 bg-gray-700 border border-gray-600 rounded text-white text-center text-sm" placeholder="N">
+                        <button id="btn-manual-summary" class="flex-1 px-2 py-1 bg-pink-600 hover:bg-pink-700 text-white rounded text-sm transition">생성</button>
+                    </div>
+                    <textarea id="manual-ai-output" rows="2" readonly class="w-full p-2 mb-2 bg-gray-800 border border-gray-600 rounded text-gray-300 text-xs placeholder-gray-500" placeholder="AI가 생성한 요약이 여기에 나옵니다 (복사 전용)"></textarea>
+                    
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs text-pink-200">요약 결과물 (단기기억)</span>
+                        <button onclick="document.getElementById('manual-summary-result').value=''" class="text-xs text-red-400 hover:text-red-300">지우기</button>
+                    </div>
+                    <textarea id="manual-summary-result" rows="3" class="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white text-sm" placeholder="프롬프트에 반영될 직접 요약칸"></textarea>
+                </div>
+
+                <div class="border-t border-gray-700 pt-3">
+                    <label class="block mb-2 text-sm font-medium text-indigo-300">자동 요약 (20턴 주기)</label>
+                    <span class="text-xs text-indigo-200 block mb-1">총합 요약본</span>
+                    <textarea id="auto-total-summary" rows="3" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded text-white text-sm" placeholder="누적 요약"></textarea>
+                    
+                    <span class="text-xs text-indigo-200 block mb-1">최근 요약본 (가장 최근 20개)</span>
+                    <textarea id="auto-recent-summary" rows="2" class="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white text-sm" placeholder="최근 사건 요약"></textarea>
+                </div>
+            </div>
             
-            <!-- (페르소나, 세계관, 장기기억, 모델 선택 등 기존 섹션은 동일) -->
-            <div>
-                <div class="flex justify-between items-center mb-2">
-                    <label for="char-persona" class="block text-sm font-medium text-blue-300">캐릭터의 페르소나</label>
-                    <button id="btn-suggest-persona" class="text-xs bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded-lg transition-all shadow-md active:scale-95">
-                        ✨ 추천
-                    </button>
+            <div class="mb-6 p-3 bg-gray-900 rounded-lg border border-gray-700">
+                <h3 class="text-lg font-bold text-blue-400 mb-3">📖 기본 프롬프트</h3>
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label for="char-persona" class="block text-sm font-medium text-blue-300">AI 페르소나</label>
+                    </div>
+                    <textarea id="char-persona" rows="4" class="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"></textarea>
                 </div>
-                <textarea id="char-persona" rows="8"
-                    class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="예: 에스파의 'Supernova'를 표절했다는 논란에 싸인 모차르트."
-                ></textarea>
-            </div>
-            <div class="mt-4">
-                <label for="user-persona" class="block mb-2 text-sm font-medium text-green-300">유저의 페르소나</label>
-                <textarea id="user-persona" rows="4"
-                    class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-green-500 focus:border-green-500"
-                    placeholder="예: 그런 그를 흥미롭게 바라보는 살리에리."
-                ></textarea>
-            </div>
-            <div class="mt-4">
-                <label for="worldview-setting" class="block mb-2 text-sm font-medium text-cyan-300">세계관</label>
-                <textarea id="worldview-setting" rows="6"
-                    class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-cyan-500 focus:border-cyan-500"
-                    placeholder="예: 여기는 2077년, 사이버펑크 도시. AI는 인간의 조력자이지만, 기업들의 감시를 받고 있다."
-                ></textarea>
-            </div>
-            <div class="mt-4">
-                <div class="flex justify-between items-center mb-2">
-                    <label for="memory" class="block text-sm font-medium text-yellow-300">장기 기억</label>
-                    <button id="btn-extract-memory" class="text-xs bg-yellow-600 hover:bg-yellow-700 text-white py-1 px-2 rounded-lg transition-all shadow-md active:scale-95">
-                        ✨ 기억 추출
-                    </button>
+                <div class="mt-3">
+                    <label for="user-persona" class="block mb-1 text-sm font-medium text-green-300">유저 페르소나</label>
+                    <textarea id="user-persona" rows="3" class="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"></textarea>
                 </div>
-                <textarea id="memory" rows="10"
-                    class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-yellow-500 focus:border-yellow-500"
-                    placeholder="예:
-- 나의 이름은 [내 이름]이다.
-- 나는 초콜릿을 싫어한다.
-- 나의 생일은 10월 23일이다."
-                ></textarea>
+                <div class="mt-3">
+                    <label for="worldview-setting" class="block mb-1 text-sm font-medium text-cyan-300">세계관</label>
+                    <textarea id="worldview-setting" rows="3" class="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"></textarea>
+                </div>
+                <div class="mt-3">
+                    <label for="memory" class="block mb-1 text-sm font-medium text-yellow-300">장기 기억</label>
+                    <textarea id="memory" rows="4" class="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"></textarea>
+                </div>
             </div>
+
             <div class="mt-4">
-                <label for="model-select" class="block mb-2 text-sm font-medium text-purple-300">모델 선택</label>
-                <select id="model-select" class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-purple-500 focus:border-purple-500">
+                <label for="model-select" class="block mb-2 text-sm font-medium text-purple-300">메인 모델 선택</label>
+                <select id="model-select" class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white">
                     <option value="gemini-2.5-pro" selected>Pro2.5 (기본값)</option>
                     <option value="gemini-3.1-pro-preview" >Pro3.1 (최고성능)</option>
                     <option value="gemini-3-pro-preview" >pro3 (기존성능)</option>
-                    <option value="gemini-3-flash-preview" >Pro3flash (밤티성능)</option>
+                    <option value="gemini-3-flash-preview" >flash3 (밤티성능)</option>
                 </select>
             </div>
             
-            <!-- ✨✨✨ NEW (y 요청): 채팅 저장/불러오기 섹션 ✨✨✨ -->
             <div class="mt-6 pt-4 border-t border-gray-700">
                 <h3 class="text-lg font-bold text-teal-300 mb-3">채팅 저장/불러오기</h3>
-                
-                <!-- 현재 채팅 저장 버튼 -->
-                <button id="btn-save-current-chat"
-                        class="w-full px-4 py-2 mb-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-all shadow-md active:scale-95 font-semibold">
-                    현재 채팅 저장하기...
-                </button>
-
-                <!-- ✨ NEW: 텍스트 파일 불러오기 버튼 (네 다음 아이디어) -->
-                <button id="btn-import-txt"
-                        class="w-full px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-all shadow-md active:scale-95 font-semibold">
-                    ...(.txt) 파일에서 불러오기
-                </button>
+                <button id="btn-save-current-chat" class="w-full px-4 py-2 mb-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-semibold">현재 채팅 저장하기...</button>
+                <button id="btn-import-txt" class="w-full px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-semibold">...(.txt) 파일에서 불러오기</button>
                 <input type="file" id="file-importer" accept=".txt" class="hidden">
-
-
-                <!-- 저장된 채팅 목록 -->
-                <label class="block text-sm font-medium text-gray-400 mt-4 mb-2">저장된 채팅 목록 (브라우저)</label>
-                <div id="saved-chats-list" 
-                     class="max-h-48 overflow-y-auto space-y-2 bg-gray-900/50 p-2 rounded-lg border border-gray-700">
-                    <!-- JS로 여기에 목록이 채워집니다 -->
-                    <p class="text-xs text-gray-500">저장된 채팅이 없습니다.</p>
-                </div>
+                <div id="saved-chats-list" class="mt-4 max-h-48 overflow-y-auto space-y-2 bg-gray-900/50 p-2 rounded-lg border border-gray-700"></div>
             </div>
 
+            <div class="mt-6 pt-4 border-t border-gray-700">
+                <label for="api-key-input" class="block mb-2 text-sm font-medium text-orange-300">API 키 관리</label>
+                <div class="flex space-x-2">
+                    <input type="password" id="api-key-input" class="flex-1 p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white" placeholder="AIzaSy...">
+                    <button id="btn-save-key" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg">저장</button>
+                </div>
+            </div>
+        </div>
 
             <!-- API 키 관리 섹션 (순서 변경) -->
             <div class="mt-6 pt-4 border-t border-gray-700">
@@ -365,17 +363,59 @@
         const fileImporter = document.getElementById('file-importer');
 
 
-        const SETTINGS_STORAGE_KEYS = {
+       const SETTINGS_STORAGE_KEYS = {
             charPersona: 'gemini-settings-char-persona',
             userPersona: 'gemini-settings-user-persona',
             worldview: 'gemini-settings-worldview',
             memory: 'gemini-settings-memory',
-            model: 'gemini-settings-model'
+            model: 'gemini-settings-model',
+            manualSummary: 'gemini-settings-manual-summary',
+            autoTotal: 'gemini-settings-auto-total',
+            autoRecent: 'gemini-settings-auto-recent'
         };
 
-        let userApiKey = ""; 
-        let modelName = "gemini-2.5-flash"; 
-        let chatHistory = [];
+        const manualNumStart = document.getElementById('manual-num-start');
+        const manualNumEnd = document.getElementById('manual-num-end');
+        const btnManualSummary = document.getElementById('btn-manual-summary');
+        const manualAiOutput = document.getElementById('manual-ai-output');
+        const manualSummaryResult = document.getElementById('manual-summary-result');
+        const autoTotalSummary = document.getElementById('auto-total-summary');
+        const autoRecentSummary = document.getElementById('auto-recent-summary');
+
+        // 설정 저장 함수 업데이트
+        function saveSettings() {
+            localStorage.setItem(SETTINGS_STORAGE_KEYS.charPersona, charPersonaInput.value);
+            localStorage.setItem(SETTINGS_STORAGE_KEYS.userPersona, userPersonaInput.value);
+            localStorage.setItem(SETTINGS_STORAGE_KEYS.worldview, worldviewInput.value);
+            localStorage.setItem(SETTINGS_STORAGE_KEYS.memory, memoryInput.value);
+            localStorage.setItem(SETTINGS_STORAGE_KEYS.model, modelSelect.value);
+            localStorage.setItem(SETTINGS_STORAGE_KEYS.manualSummary, manualSummaryResult.value);
+            localStorage.setItem(SETTINGS_STORAGE_KEYS.autoTotal, autoTotalSummary.value);
+            localStorage.setItem(SETTINGS_STORAGE_KEYS.autoRecent, autoRecentSummary.value);
+            modelName = modelSelect.value; 
+        }
+
+        // 설정 불러오기 함수 업데이트
+        function loadSettings() {
+            charPersonaInput.value = localStorage.getItem(SETTINGS_STORAGE_KEYS.charPersona) || '';
+            userPersonaInput.value = localStorage.getItem(SETTINGS_STORAGE_KEYS.userPersona) || '';
+            worldviewInput.value = localStorage.getItem(SETTINGS_STORAGE_KEYS.worldview) || '';
+            memoryInput.value = localStorage.getItem(SETTINGS_STORAGE_KEYS.memory) || '';
+            manualSummaryResult.value = localStorage.getItem(SETTINGS_STORAGE_KEYS.manualSummary) || '';
+            autoTotalSummary.value = localStorage.getItem(SETTINGS_STORAGE_KEYS.autoTotal) || '';
+            autoRecentSummary.value = localStorage.getItem(SETTINGS_STORAGE_KEYS.autoRecent) || '';
+            
+            const savedModel = localStorage.getItem(SETTINGS_STORAGE_KEYS.model);
+            if (savedModel) {
+                modelName = savedModel;
+                modelSelect.value = savedModel;
+            }
+            
+            // UI 변경 감지 이벤트 추가
+            manualSummaryResult.addEventListener('change', saveSettings);
+            autoTotalSummary.addEventListener('change', saveSettings);
+            autoRecentSummary.addEventListener('change', saveSettings);
+        }
 
         // 2. 이벤트 리스너
         
@@ -631,10 +671,13 @@
             });
             saveChatHistory(); 
             loadingIndicator.classList.remove('hidden');
-            try {
+           try {
                 const systemPrompt = buildSystemPrompt();
-                const CONVERSATION_WINDOW_SIZE = 10;
-                const recentHistory = chatHistory.slice(-CONVERSATION_WINDOW_SIZE);
+                
+                // 🚨 핵심: 과거 대화 10개 묶던 거 폐기! 
+                // 오직 방금 친 마지막 채팅 1개만 contents로 넘김
+                const recentHistory = chatHistory.slice(-1); 
+                
                 const text = await callGeminiApi(recentHistory, systemPrompt, userApiKey);
                 const modelMessageId = Date.now() + '-model';
                 displayMessage(text, 'model', modelMessageId);
@@ -644,6 +687,11 @@
                     parts: [{ text: text }]
                 });
                 saveChatHistory(); 
+                updateMessageNumbers(); // 번호 업데이트
+
+                // 🌟 대화가 1턴 끝났으니 자동요약 돌릴 타이밍인지 체크!
+                checkAndRunAutoSummary(); 
+
             } catch (error) {
                 console.error("Error in handleSendChat:", error);
                 if (error.message && (error.message.includes('401') || error.message.includes('403') || error.message.includes('API key not valid'))) {
@@ -1328,18 +1376,43 @@
          */
         function buildSystemPrompt() {
             // (이 함수 내용은 변경 없음 - 기존과 동일)
-            const charPersona = charPersonaInput.value;
-            const userPersona = userPersonaInput.value;
-            const worldview = worldviewInput.value; 
-            const memory = memoryInput.value;
+            const manualSummary = manualSummaryResult.value.trim();
+            const autoTotal = autoTotalSummary.value.trim();
+            const autoRecent = autoRecentSummary.value.trim();
 
             let prompt = `
+
 [시스템 지침 시작]
 당신은 'AI 페르소나' 역할을 수행하는 AI입니다. 당신의 유일한 목표는 설정에 완벽하게 몰입한 답변을 생성하는 것입니다.
 
+### 캐릭터 설정 (반드시 숙지할 정보) ###
+#### 1. AI 페르소나 ####
+${charPersonaInput.value || "설정 없음"}
+
+#### 2. 유저 페르소나 ####
+${userPersonaInput.value || "설정 없음"}        
+
+#### 3. 배경 세계관 ####
+${worldviewInput.value || "설정 없음"}
+
+#### 4. 장기 기억 (절대 변하지 않는 팩트) ####
+${memoryInput.value || "설정 없음"}
+
+### AI의 기억 (대화의 맥락) ###
+이전까지의 대화 내용은 아래 요약본을 참고하십시오.
+
+[단기 기억 (최근 상황)]
+${manualSummary || "특별한 상황 없음"}
+
+[총합 요약본 (과거 줄거리)]
+${autoTotal || "아직 요약된 줄거리 없음"}
+
+[최근 요약본 (가장 최근 사건)]
+${autoRecent || "방금 대화를 시작함"}    
+
 ### 대화 출력 원칙 ###
 
-1.  **맥락 우선의 원칙:** 당신은 언제나 대화의 흐름을 가장 중요하게 여깁니다. 모든 답변은 이 맥락에서부터 자연스럽게 시작됩니다.
+1.  **맥락 우선의 원칙:** 당신은 언제나 기억을 가장 중요하게 여깁니다. 모든 답변은 이 맥락에서부터 자연스럽게 시작됩니다.
 
 2.  **기억 내재화의 원칙:** 당신에게 '장기 기억'은 단순히 참고할 정보가 아니라, 당신이 실제로 겪은 과거입니다. 이 기억들을 대화에 자연스럽게 녹여내되, 마치 처음 말하는 것처럼 어색하게 설명하지 않습니다.
 
@@ -1358,21 +1431,6 @@
 -   당신은 AI가 아니라, 주어진 역할 그 자체입니다. 묵묵히 이 규칙들을 따르세요.
 4. **사용자의 페르소나에 적힌 인물의 대사는 절대 적지 말 것**: 당신은 자율적으로 등장인물을 만들거나 다른 등장인물의 대사를 서술할 수는 있지만 결코 '사용자의 페르소나'에 해당하는 인물의 대사는 임의로 적을 수 없습니다. 해당 인물의 대사는 오직 사용자 본인만이 적을 수 있습니다. 
 5. **답변 출력 과정 서술 금지**: 답변 출력의 과정이나, 답변 출력에 필요한 사고의 과정을 절대 적지 마세요.
----
-
-### 캐릭터 설정 (반드시 숙지할 정보) ###
-
-#### 1. 당신의 페르소나 (AI 역할) ####
-${charPersona || "설정 없음"}
-
-#### 2. 사용자의 페르소나 (대화 상대) ####
-${userPersona || "설정 없음"}        
-
-#### 2.5. 배경 세계관 (World Setting) ####
-${worldview || "설정 없음"}
-
-#### 3. 장기 기억 (필수 전제 조건) ####
-${memory || "설정 없음"}
 
 [시스템 지침 종료]
 (이제 사용자와의 실제 대화가 시작됩니다. 화이팅, 당신은 사용자에게 만족스러운 경험을 선사해줄 수 있습니다!)
@@ -1383,6 +1441,101 @@ ${memory || "설정 없음"}
         /**
          * 8. UI 관련 함수 (기존과 동일)
          */
+function updateMessageNumbers() {
+            const bubbles = chatDisplay.querySelectorAll('div[data-id]');
+            bubbles.forEach((bubble, idx) => {
+                let numSpan = bubble.querySelector('.msg-number');
+                if (!numSpan) {
+                    numSpan = document.createElement('span');
+                    numSpan.className = 'msg-number text-xs text-gray-400 ml-2 font-normal';
+                    const nameSpan = bubble.querySelector('span.font-bold');
+                    if (nameSpan) nameSpan.appendChild(numSpan);
+                }
+                numSpan.textContent = `#${idx + 1}`;
+            });
+        }
+
+        // ⚡ 플래시 전용 요약 API
+        async function callSummaryApi(promptText, apiKey) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: promptText }] }],
+                generationConfig: { temperature: 0.3 } // 요약이니까 창의성 낮춰서 사실 기반으로
+            };
+            const response = await fetchWithRetry(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) throw new Error(`요약 API 에러: ${response.status}`);
+            const data = await response.json();
+            return data.candidates[0].content.parts[0].text;
+        }
+
+        // 🎯 수동 요약 이벤트
+        btnManualSummary.addEventListener('click', async () => {
+            if (!userApiKey) return alert("API 키가 필요해!");
+            const start = parseInt(manualNumStart.value, 10);
+            const end = parseInt(manualNumEnd.value, 10);
+            if (isNaN(start) || isNaN(end) || start < 1 || end > chatHistory.length || start > end) {
+                return alert("채팅 번호 범위를 제대로 확인해줘 (1부터 현재 채팅 개수 사이)");
+            }
+            btnManualSummary.textContent = "요약중..";
+            btnManualSummary.disabled = true;
+            try {
+                const targetChats = chatHistory.slice(start - 1, end).map((msg, idx) => 
+                    `[#${start + idx} ${msg.role === 'user' ? '유저' : 'AI'}]: ${msg.parts[0].text}`
+                ).join('\n\n');
+                const prompt = `다음 대화 내역을 분석해서 핵심 사건, 장소 변화, 감정선 위주로 짧게 요약해줘.\n\n<대화내역>\n${targetChats}\n</대화내역>`;
+                
+                const summary = await callSummaryApi(prompt, userApiKey);
+                manualAiOutput.value = summary;
+            } catch(e) {
+                alert("수동 요약 실패: " + e.message);
+            } finally {
+                btnManualSummary.textContent = "생성";
+                btnManualSummary.disabled = false;
+            }
+        });
+
+        // 🤖 20턴 자동 요약 코어 엔진
+        async function checkAndRunAutoSummary() {
+            // 채팅이 20개가 될 때마다 실행
+            if (chatHistory.length === 0 || chatHistory.length % 20 !== 0) return;
+            
+            let currentTotal = autoTotalSummary.value.trim();
+            const prevRecent = autoRecentSummary.value.trim();
+            
+            // 1. 기존 '최근 요약본'을 '총합 요약본'에 이어붙이기
+            if (prevRecent) {
+                currentTotal = currentTotal ? currentTotal + "\n\n" + prevRecent : prevRecent;
+            }
+            
+            // 2. 총합 요약본이 너무 길면(대략 글자수 1500자 기준) 다시 요약해서 압축
+            if (currentTotal.length > 1500) {
+                try {
+                    const prompt = `다음은 누적된 소설/대화의 요약본이야. 내용이 너무 길어져서 핵심만 다시 압축해야 해. 자잘한 디테일은 쳐내고 큰 줄거리와 캐릭터의 현재 상태 위주로 500자 내외로 다시 요약해줘.\n\n<기존요약>\n${currentTotal}\n</기존요약>`;
+                    currentTotal = await callSummaryApi(prompt, userApiKey);
+                } catch(e) {
+                    console.error("총합 압축 실패", e);
+                }
+            }
+            autoTotalSummary.value = currentTotal;
+
+            // 3. 최신 20개 채팅을 요약해서 '최근 요약본'에 새로 넣기
+            try {
+                const targetChats = chatHistory.slice(-20).map(msg => 
+                    `[${msg.role === 'user' ? '유저' : 'AI'}]: ${msg.parts[0].text}`
+                ).join('\n\n');
+                const prompt = `다음 최근 대화 20개를 분석해서 일어난 주요 사건과 캐릭터들의 감정선을 요약해줘.\n\n<대화>\n${targetChats}\n</대화>`;
+                const newRecent = await callSummaryApi(prompt, userApiKey);
+                autoRecentSummary.value = newRecent;
+            } catch(e) {
+                console.error("최근 대화 자동 요약 실패", e);
+            }
+            saveSettings(); // 화면에 쓰고 로컬스토리지 저장
+        }
+        
         function displayMessage(message, role, messageId) {
             // (이 함수 내용은 변경 없음 - 기존과 동일)
             const bubble = document.createElement('div');
@@ -1468,6 +1621,7 @@ ${memory || "설정 없음"}
     </script>
 </body>
 </html>
+
 
 
 

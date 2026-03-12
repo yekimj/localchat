@@ -274,6 +274,11 @@
         btnCloseSidebar.addEventListener('click', () => { sidebar.classList.add('-translate-x-full'); sidebarBackdrop.classList.add('hidden'); });
         sidebarBackdrop.addEventListener('click', () => btnCloseSidebar.click());
 
+        // ✨ 파일 저장 및 불러오기 버튼 연결
+        document.getElementById('btn-download').addEventListener('click', handleDownload);
+        document.getElementById('btn-import-txt').addEventListener('click', () => document.getElementById('file-importer').click());
+        document.getElementById('file-importer').addEventListener('change', handleImportFile);
+
         // --- 3. 핵심 로직: 메시지 전송 및 API ---
         async function handleSendChat(e) {
             e.preventDefault();
@@ -451,9 +456,142 @@
         // 나머지 저장/불러오기/모달 로직은 기존 파일 내용과 동일하게 유지...
         // (지면상 생략하지만 기능은 index(18).html의 로직을 그대로 따름)
 
+        // --- 6.1. 기타 함수 모음: 다운로드 --- 
+        function handleDownload() {
+            if (chatHistory.length === 0 && 
+                !charPersonaInput.value && !userPersonaInput.value && 
+                !worldviewInput.value && !memoryInput.value) {
+                alert('다운로드할 내용이 아무것도 없어!');
+                return;
+            }
+
+            let d = "";
+            // 섹션을 만드는 헬퍼 함수
+            const addSection = (title, val) => {
+                d += `[${title}]\r\n--------------------\r\n${(val || "").trim()}\r\n--------------------\r\n\r\n`;
+            };
+
+            // 1. 기본 프롬프트 섹션
+            addSection("캐릭터의 페르소나", charPersonaInput.value);
+            addSection("유저의 페르소나", userPersonaInput.value);
+            addSection("세계관", worldviewInput.value);
+            addSection("장기 기억", memoryInput.value);
+
+            // 2. ✨ NEW: AI의 기억 섹션 (새로 추가된 부분)
+            addSection("수동 요약 결과물", manualSummaryResult.value);
+            addSection("자동 총합 요약", autoTotalSummary.value);
+            addSection("자동 최근 요약", autoRecentSummary.value);
+
+            // 3. 채팅 기록 섹션
+            if (chatHistory.length > 0) {
+                d += "[채팅 기록]\r\n--------------------\r\n";
+                chatHistory.forEach(msg => {
+                    const roleTag = msg.role === 'user' ? "{{user}}" : "{{ai}}";
+                    // 줄바꿈은 \r\n으로 통일해서 저장
+                    const text = msg.parts[0].text.replace(/\n/g, '\r\n');
+                    d += `${roleTag}\r\n${text}\r\n\r\n`;
+                });
+            }
+
+            const blob = new Blob([d], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            const now = new Date();
+            const fileName = `gemini_persona_chat_${now.getMonth()+1}${now.getDate()}_${now.getHours()}${now.getMinutes()}.txt`;
+            
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        }
+
+        // 6.2. 기타 함수 모음: 임포트
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const content = e.target.result;
+                    const data = parseImportedText(content);
+                    
+                    // UI 필드에 값 채우기
+                    charPersonaInput.value = data.settings.charPersona;
+                    userPersonaInput.value = data.settings.userPersona;
+                    worldviewInput.value = data.settings.worldview;
+                    memoryInput.value = data.settings.memory;
+                    
+                    // ✨ 요약본 섹션 (없으면 빈 문자열)
+                    manualSummaryResult.value = data.settings.manualSummary || "";
+                    autoTotalSummary.value = data.settings.autoTotal || "";
+                    autoRecentSummary.value = data.settings.autoRecent || "";
+
+                    // 채팅 내역 복구
+                    chatHistory = data.history;
+                    
+                    // 상태 저장 및 화면 리프레시
+                    saveSettings();
+                    saveChatHistory();
+                    loadChatHistory();
+                    
+                    alert(`'${file.name}' 파일을 성공적으로 불러왔어!`);
+                    if (window.innerWidth < 768) btnCloseSidebar.click();
+                } catch (err) {
+                    console.error(err);
+                    alert("파일 형식이 잘못된 것 같아. 확인해봐!");
+                }
+                event.target.value = null; // 파일 선택 초기화
+            };
+            reader.readAsText(file);
+        }
+
+        function parseImportedText(text) {
+            // 태그 사이의 내용을 추출하는 함수
+            const extract = (tag) => {
+                const regex = new RegExp(`\\[${tag}\\]\\r?\\n-+\\r?\\n([\\s\\S]*?)\\r?\\n-+`, 'm');
+                const match = text.match(regex);
+                return match ? match[1].trim() : '';
+            };
+
+            const settings = {
+                charPersona: extract("캐릭터의 페르소나"),
+                userPersona: extract("유저의 페르소나"),
+                worldview: extract("세계관"),
+                memory: extract("장기 기억"),
+                manualSummary: extract("수동 요약 결과물"), // NEW
+                autoTotal: extract("자동 총합 요약"),     // NEW
+                autoRecent: extract("자동 최근 요약")      // NEW
+            };
+
+            const history = [];
+            const chatMatch = text.match(/\[채팅 기록\]\r?\n-+\r?\n([\s\S]*)/);
+            if (chatMatch) {
+                const chatBlock = chatMatch[1].trim();
+                const parts = chatBlock.split(/(\{\{(?:ai|user)\}\}\r?\n)/);
+                
+                let currentRole = null;
+                parts.forEach(part => {
+                    if (part.includes("{{ai}}")) currentRole = "model";
+                    else if (part.includes("{{user}}")) currentRole = "user";
+                    else if (currentRole && part.trim()) {
+                        history.push({
+                            id: Date.now() + Math.random(),
+                            role: currentRole,
+                            parts: [{ text: part.trim() }]
+                        });
+                        currentRole = null;
+                    }
+                });
+            }
+            return { settings, history };
+        }
+
     </script>
 </body>
 </html>
+
 
 
 

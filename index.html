@@ -323,29 +323,65 @@
         }
 
         async function callGeminiApi(contents, systemInstruction, apiKey) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelSelect.value}:generateContent?key=${apiKey}`;
-            const payload = {
-                systemInstruction: { parts: [{ text: systemInstruction }] },
-                contents: contents.map(m => ({ role: m.role, parts: m.parts })),
-                generationConfig: { maxOutputTokens: 4096, temperature: 0.8 }
-            };
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelSelect.value}:generateContent?key=${apiKey}`;
+    const payload = {
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        contents: contents.map(m => ({ role: m.role, parts: m.parts })),
+        generationConfig: { maxOutputTokens: 4096, temperature: 0.8 }
+    };
 
-            const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            const data = await resp.json();
-            
-            console.log("Tokens Used:", data.usageMetadata);
-            if (!resp.ok) throw new Error(data.error?.message || "API 호출 실패");
-            return data.candidates[0].content.parts[0].text;
-        }
+    const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
 
-        // ⚡ 플래시 요약 전용 (Gemini 3 Flash)
-        async function callSummaryApi(prompt, apiKey) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2 } };
-            const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            const data = await resp.json();
-            return data.candidates[0].content.parts[0].text;
-        }
+    const data = await resp.json();
+
+    // ✅ 개발자도구(Console)에서 자세히 보이게 로그 출력
+    console.log("===== Gemini API Raw Response =====");
+    console.log(data);
+
+    console.log("===== Gemini usageMetadata =====");
+    console.log(data.usageMetadata);
+
+    if (data.usageMetadata) {
+        const usage = data.usageMetadata;
+
+        console.log("promptTokenCount:", usage.promptTokenCount ?? 0);
+        console.log("candidatesTokenCount:", usage.candidatesTokenCount ?? 0);
+        console.log("thoughtsTokenCount:", usage.thoughtsTokenCount ?? 0);
+        console.log("cachedContentTokenCount:", usage.cachedContentTokenCount ?? 0);
+        console.log("totalTokenCount:", usage.totalTokenCount ?? 0);
+
+        console.log(
+            `[TOKENS] input=${usage.promptTokenCount ?? 0}, output=${usage.candidatesTokenCount ?? 0}, thoughts=${usage.thoughtsTokenCount ?? 0}, cached=${usage.cachedContentTokenCount ?? 0}, total=${usage.totalTokenCount ?? 0}`
+        );
+    } else {
+        console.log("usageMetadata 없음");
+    }
+
+    if (data.promptFeedback) {
+        console.error("Prompt Feedback:", data.promptFeedback);
+        const blockReason = data.promptFeedback.blockReason || '알 수 없는 이유';
+        throw new Error(`입력이 차단되었습니다. (이유: ${blockReason})`);
+    }
+
+    if (!resp.ok) {
+        throw new Error(data.error?.message || "API 호출 실패");
+    }
+
+    const candidate = data.candidates?.[0];
+    if (!candidate) {
+        throw new Error("API로부터 유효한 응답(candidates)을 받지 못했습니다.");
+    }
+
+    if (!candidate.content || !candidate.content.parts || !candidate.content.parts[0]?.text) {
+        return "";
+    }
+
+    return candidate.content.parts[0].text;
+}
 
         // --- 4. 요약 및 기억 관리 ---
         btnManualSummary.addEventListener('click', async () => {
@@ -591,6 +627,7 @@
     </script>
 </body>
 </html>
+
 
 
 

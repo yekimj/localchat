@@ -142,6 +142,28 @@
             </div>
         </div>
 
+        <div class="pt-4 border-t border-gray-700">
+    <details class="bg-gray-900/50 rounded-xl border border-gray-700 overflow-hidden">
+        <summary class="p-3 cursor-pointer font-bold text-xs text-orange-300 hover:bg-gray-700/50 transition focus:outline-none">
+            📊 토큰 사용량 확인 (클릭)
+        </summary>
+        <div class="p-3 space-y-2 font-mono text-[10px] text-gray-400 border-t border-gray-700 bg-black/20">
+            <div>
+                <span class="text-blue-400 font-bold block mb-1">[채팅 세션]</span>
+                <div id="token-chat">채팅: [TOKENS] input=0, output=0, thoughts=0, cached=0, total=0</div>
+            </div>
+            <div>
+                <span class="text-pink-400 font-bold block mb-1">[기억 요약]</span>
+                <div id="token-summary">요약: [TOKENS] input=0, output=0, thoughts=0, cached=0, total=0</div>
+            </div>
+            <div class="pt-2 border-t border-gray-800">
+                <span class="text-white font-bold block mb-1">[누적 총계]</span>
+                <div id="token-total" class="text-gray-200">합계: [TOKENS] input=0, output=0, thoughts=0, cached=0, total=0</div>
+            </div>
+        </div>
+    </details>
+</div>
+
         <div class="flex-1 flex flex-col overflow-hidden"> 
             <div id="chat-display" class="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-900">
                 </div>
@@ -708,6 +730,7 @@ async function checkAndRunAutoSummary() {
     </script>
 </body>
 </html>
+
 
 
 

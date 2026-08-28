@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- FIX VERSION: filter-toggle-cache-v3 (2026-08-28) -->
+<!-- FIX VERSION: new-api-key-format-v5 (2026-08-28) -->
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -129,6 +129,7 @@
                 <label for="model-select" class="block mb-2 text-sm font-medium text-purple-300">모델 선택</label>
                 <select id="model-select" class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-purple-500 focus:border-purple-500">
                     <option value="gemini-2.5-pro" selected>Pro2.5 (기본값)</option>
+                    <option value="gemini-2.5-flash">Flash2.5 (무료·빠름)</option>
                     <option value="gemini-3.1-pro-preview">Pro3.1 (유료 계정 필요)</option>
                 </select>
             </div>
@@ -180,7 +181,7 @@
                 <div class="flex space-x-2">
                     <input type="password" id="api-key-input"
                            class="flex-1 p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-orange-500 focus:border-orange-500"
-                           placeholder="AIzaSy... (Gemini API 키 붙여넣기)">
+                           placeholder="Gemini API 키 붙여넣기">
                     <button id="btn-save-key"
                             class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-all shadow-md active:scale-95">
                         저장
@@ -520,18 +521,18 @@
         function handleSaveKey(e) {
             e.preventDefault();
             const newKey = apiKeyInput.value.trim();
-            if (newKey && newKey.startsWith("AIzaSy")) {
+            if (newKey) {
                 userApiKey = newKey;
                 localStorage.setItem(API_KEY_STORAGE_ID, newKey);
-                apiKeyAlert.classList.add('hidden'); 
-                displayMessage("API 키가 브라우저에 안전하게 저장되었습니다.", 'model');
+                apiKeyAlert.classList.add('hidden');
+                displayMessage("API 키가 이 브라우저에 저장되었습니다.", 'model');
                 if (window.innerWidth < 768) {
                     btnCloseSidebar.click();
                 }
             } else {
-                displayMessage("올바른 Gemini API 키 (AIzaSy...)를 입력하세요.", 'error');
+                displayMessage("Google AI Studio에서 발급받은 Gemini API 키를 입력하세요.", 'error');
                 userApiKey = "";
-                localStorage.removeItem(API_KEY_STORAGE_ID); 
+                localStorage.removeItem(API_KEY_STORAGE_ID);
                 apiKeyAlert.classList.remove('hidden'); 
             }
         }
@@ -1454,7 +1455,7 @@
             if (!apiKey) {
                 throw new Error("API key is missing.");
             }
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
             const safetyThreshold = "BLOCK_NONE";
             const safetySettings = [
                 { category: "HARM_CATEGORY_HARASSMENT", threshold: safetyThreshold },
@@ -1486,7 +1487,10 @@
             }
             const response = await fetchWithRetry(apiUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': apiKey
+                },
                 body: JSON.stringify(payload)
             });
             let result = {};
@@ -1684,16 +1688,6 @@ ${memory || "설정 없음"}
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
 
 
 

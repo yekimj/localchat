@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- FIX VERSION: interactions-400-v2 (2026-08-28) -->
+<!-- FIX VERSION: filter-toggle-cache-v3 (2026-08-28) -->
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -131,6 +131,16 @@
                     <option value="gemini-2.5-pro" selected>Pro2.5 (기본값)</option>
                     <option value="gemini-3.1-pro-preview">Pro3.1 (유료 계정 필요)</option>
                 </select>
+            </div>
+            <div class="mt-4">
+                <label for="filter-mode-select" class="block mb-2 text-sm font-medium text-rose-300">검열 설정</label>
+                <select id="filter-mode-select" class="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-rose-500 focus:border-rose-500">
+                    <option value="off" selected>검열 끔 (BLOCK_NONE)</option>
+                    <option value="on">검열 켬 (대화 캐싱 우선)</option>
+                </select>
+                <p class="mt-1 text-xs text-gray-400">
+                    끔: 최근 10개 직접 전송 + 자동 캐시 · 켬: 첫 요청 후 새 메시지만 전송
+                </p>
             </div>
             
             <!-- ✨✨✨ NEW (y 요청): 채팅 저장/불러오기 섹션 ✨✨✨ -->
@@ -326,6 +336,7 @@
         const btnExtractMemory = document.getElementById('btn-extract-memory');
         
         const modelSelect = document.getElementById('model-select');
+        const filterModeSelect = document.getElementById('filter-mode-select');
         
         const sidebar = document.getElementById('sidebar');
         const btnOpenSidebar = document.getElementById('btn-open-sidebar');
@@ -369,12 +380,15 @@
             userPersona: 'gemini-settings-user-persona',
             worldview: 'gemini-settings-worldview',
             memory: 'gemini-settings-memory',
-            model: 'gemini-settings-model'
+            model: 'gemini-settings-model',
+            filterMode: 'gemini-settings-filter-mode'
         };
 
         const DEFAULT_MODEL_NAME = "gemini-2.5-pro";
+        const DEFAULT_FILTER_MODE = "off";
         let userApiKey = "";
         let modelName = DEFAULT_MODEL_NAME;
+        let filterMode = DEFAULT_FILTER_MODE;
         let chatHistory = [];
         const CONVERSATION_WINDOW_SIZE = 10;
 
@@ -458,11 +472,12 @@
         });
 
         // (기존) 설정 변경 리스너
-        charPersonaInput.addEventListener('change', saveSettings);
-        userPersonaInput.addEventListener('change', saveSettings);
-        worldviewInput.addEventListener('change', saveSettings);
-        memoryInput.addEventListener('change', saveSettings);
-        modelSelect.addEventListener('change', saveSettings); 
+        charPersonaInput.addEventListener('change', handleChatSettingsChange);
+        userPersonaInput.addEventListener('change', handleChatSettingsChange);
+        worldviewInput.addEventListener('change', handleChatSettingsChange);
+        memoryInput.addEventListener('change', handleChatSettingsChange);
+        modelSelect.addEventListener('change', handleChatSettingsChange);
+        filterModeSelect.addEventListener('change', handleChatSettingsChange);
 
         
         // ✨✨✨ NEW (y 요청): 채팅 저장/불러오기 리스너 ✨✨✨
@@ -530,7 +545,15 @@
             localStorage.setItem(SETTINGS_STORAGE_KEYS.worldview, worldviewInput.value);
             localStorage.setItem(SETTINGS_STORAGE_KEYS.memory, memoryInput.value);
             localStorage.setItem(SETTINGS_STORAGE_KEYS.model, modelSelect.value);
+            localStorage.setItem(SETTINGS_STORAGE_KEYS.filterMode, filterModeSelect.value);
             modelName = modelSelect.value;
+            filterMode = filterModeSelect.value;
+        }
+
+        function handleChatSettingsChange() {
+            invalidateInteractionChain();
+            saveChatHistory();
+            saveSettings();
         }
 
         function applyAvailableModel(requestedModel) {
@@ -541,6 +564,13 @@
             modelSelect.value = nextModel;
             modelName = nextModel;
             return nextModel;
+        }
+
+        function applyAvailableFilterMode(requestedMode) {
+            const nextMode = requestedMode === 'on' ? 'on' : DEFAULT_FILTER_MODE;
+            filterModeSelect.value = nextMode;
+            filterMode = nextMode;
+            return nextMode;
         }
 
         /**
@@ -557,6 +587,9 @@
             if (savedModel && savedModel !== activeModel) {
                 localStorage.setItem(SETTINGS_STORAGE_KEYS.model, activeModel);
             }
+            applyAvailableFilterMode(
+                localStorage.getItem(SETTINGS_STORAGE_KEYS.filterMode) || DEFAULT_FILTER_MODE
+            );
         }
 
         /**
@@ -731,7 +764,7 @@
                      displayMessage('✨ 추천할 아이디어가 떠오르지 않습니다. 다시 시도해 주세요.', 'error');
                 } else {
                     charPersonaInput.value = text;
-                    saveSettings(); 
+                    handleChatSettingsChange();
                     displayMessage('✨ AI가 새로운 페르소나 아이디어를 추천했습니다. 사이드바를 확인하세요!', 'model');
                 }
             } catch (error) {
@@ -775,7 +808,7 @@
                 } else {
                     const existingMemory = memoryInput.value.trim();
                     memoryInput.value = existingMemory + (existingMemory ? '\n' : '') + text;
-                    saveSettings(); 
+                    handleChatSettingsChange();
                     displayMessage('✨ 대화에서 주요 정보를 추출하여 [장기 기억] 탭에 추가했습니다. 사이드바를 확인하세요!', 'model');
                 }
             } catch (error) {
@@ -953,7 +986,8 @@
                 userPersona: userPersonaInput.value,
                 worldview: worldviewInput.value,
                 memory: memoryInput.value,
-                model: modelSelect.value
+                model: modelSelect.value,
+                filterMode: filterModeSelect.value
             };
 
             // 3. 새 저장 객체를 만듭니다. (ID, 제목, 설정, 채팅기록)
@@ -1064,6 +1098,7 @@
             worldviewInput.value = foundChat.settings.worldview || '';
             memoryInput.value = foundChat.settings.memory || '';
             applyAvailableModel(foundChat.settings.model || DEFAULT_MODEL_NAME);
+            applyAvailableFilterMode(foundChat.settings.filterMode || DEFAULT_FILTER_MODE);
 
             // 3. 불러온 채팅 기록을 전역 변수(chatHistory)에 덮어씌웁니다.
             chatHistory = foundChat.history || [];
@@ -1300,13 +1335,7 @@
                 store: true,
                 generation_config: {
                     max_output_tokens: 4096
-                },
-                safety_settings: [
-                    { type: 'harassment', threshold: 'block_none' },
-                    { type: 'hate_speech', threshold: 'block_none' },
-                    { type: 'sexually_explicit', threshold: 'block_none' },
-                    { type: 'dangerous_content', threshold: 'block_none' }
-                ]
+                }
             };
             if (systemInstructionText) {
                 payload.system_instruction = systemInstructionText;
@@ -1397,6 +1426,19 @@
                 throw new Error('API key is missing.');
             }
 
+            if (filterMode === 'off') {
+                const text = await callGeminiApi(
+                    history.slice(-CONVERSATION_WINDOW_SIZE),
+                    systemInstructionText,
+                    apiKey
+                );
+                return {
+                    text: text,
+                    interactionId: null,
+                    previousInteractionId: null
+                };
+            }
+
             return callGeminiInteractionApi(
                 history,
                 systemInstructionText,
@@ -1426,13 +1468,15 @@
             }));
             const payload = {
                 contents: apiSafeContents,
-                safetySettings: safetySettings,
                 generationConfig: {
                     maxOutputTokens: 4096,
                     temperature: 0.8,
                     topP: 0.95
                 }
             };
+            if (filterMode === 'off') {
+                payload.safetySettings = safetySettings;
+            }
             if (systemInstructionText) {
                 // 고정 시스템 프롬프트를 별도 필드에 두면 Gemini가 동일한
                 // 프롬프트 접두사를 암시적 컨텍스트 캐시로 재사용할 수 있다.

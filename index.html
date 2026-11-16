@@ -239,7 +239,7 @@
             <!-- (채팅 입력 폼 및 하단 버튼 바 기존 HTML 동일) -->
             <form id="chat-form" class="p-4 bg-gray-800 border-t border-gray-700 md:border-l flex-shrink-0">
                 <div class="pb-2 flex justify-end items-center space-x-2">
-                    <span id="app-version" class="mr-auto text-xs text-gray-400">v1.1</span>
+                    <span id="app-version" class="mr-auto text-xs text-gray-400">v1.2</span>
                     <button id="btn-download" type="button" class="p-1 rounded-md hover:bg-gray-700" title="채팅 기록 다운로드 (.txt)">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -747,8 +747,6 @@
                 if (error.message && (error.message.includes('401') || error.message.includes('403') || error.message.includes('API key not valid'))) {
                      displayMessage(`API 키 인증 오류가 발생했습니다. 키가 올바른지 확인하거나, 키 설정이 Google AI Studio에서 올바르게 되었는지 확인하세요.`, 'error');
                      apiKeyAlert.classList.remove('hidden'); 
-                } else if (error.message && error.message.includes('400')) {
-                     displayMessage(`Server error: 400 (Bad Request). API 키는 맞지만 요청 내용(JSON 형식 등)을 서버가 거부했습니다.`, 'error');
                 } else if (error.message && error.message.includes('fetch')) {
                      displayMessage(`네트워크 오류: API 서버에 연결할 수 없습니다. (주소: ${error.message})`, 'error');
                 }
@@ -1376,7 +1374,12 @@
                      throw new Error(`API key not valid or unauthorized (status: ${response.status})`);
                 }
                 if (response.status === 400) {
-                     throw new Error(`Server error: 400 (Bad Request). API 키는 맞지만 요청 내용(JSON 형식 등)을 서버가 거부했습니다.`);
+                    const detail = await response.json().catch(() => null);
+                    const status = typeof detail?.error?.status === 'string' ? `, ${detail.error.status}` : '';
+                    const message = typeof detail?.error?.message === 'string'
+                        ? detail.error.message
+                        : '서버에서 오류 상세 내용을 보내지 않았습니다.';
+                    throw new Error(`Gemini API 오류 (HTTP 400${status}): ${message}`);
                 }
                 throw new Error(`API error! status: ${response.status}`);
             }
@@ -1390,7 +1393,7 @@
                     `output=${usage.candidatesTokenCount ?? 0}, total=${usage.totalTokenCount ?? 0}`
                 );
             }
-            if (result.promptFeedback) {
+            if (result.promptFeedback?.blockReason) {
                 console.error("Prompt Feedback:", result.promptFeedback);
                 const blockReason = result.promptFeedback.blockReason || '알 수 없는 이유';
                 throw new Error(`입력이 차단되었습니다. (이유: ${blockReason})`);
@@ -1414,7 +1417,7 @@
                     throw new Error(`API가 정상 종료되지 않았습니다. (이유: ${candidate.finishReason || '알 수 없음'})`);
                 }
             } else {
-                 if (result.promptFeedback) {
+                 if (result.promptFeedback?.blockReason) {
                     const blockReason = result.promptFeedback.blockReason || '알 수 없음';
                      throw new Error(`입력이 차단되었습니다. (이유: ${blockReason})`);
                 }

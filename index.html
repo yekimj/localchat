@@ -239,7 +239,7 @@
             <!-- (채팅 입력 폼 및 하단 버튼 바 기존 HTML 동일) -->
             <form id="chat-form" class="p-4 bg-gray-800 border-t border-gray-700 md:border-l flex-shrink-0">
                 <div class="pb-2 flex justify-end items-center space-x-2">
-                    <span id="app-version" class="mr-auto text-xs text-gray-400">v1.2</span>
+                    <span id="app-version" class="mr-auto text-xs text-gray-400">v1.3</span>
                     <button id="btn-download" type="button" class="p-1 rounded-md hover:bg-gray-700" title="채팅 기록 다운로드 (.txt)">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -417,9 +417,11 @@
         // 누적 상태가 없으면 직전 10개로 시작한다. 새 사용자 메시지는 별도로 포함한다.
         // 전체 기록은 보존하고, API 전송 범위만 20개 초과 시 오래된 10개씩 제외한다.
         function getConversationWindow(history, newMessageCount = 0) {
-            if (conversationWindowStart === null) {
-                conversationWindowStart = Math.max(0,
-                    history.length - newMessageCount - CONVERSATION_WINDOW_TRIM);
+            const fallbackStart = Math.max(0,
+                history.length - newMessageCount - CONVERSATION_WINDOW_TRIM);
+            // 삭제 후 이전 맥락이 10개 미만이면 남은 기록에서 다시 확보한다.
+            if (conversationWindowStart === null || conversationWindowStart > fallbackStart) {
+                conversationWindowStart = fallbackStart;
             }
             while (history.length - conversationWindowStart > CONVERSATION_WINDOW_MAX) {
                 conversationWindowStart += CONVERSATION_WINDOW_TRIM;
